@@ -1,57 +1,67 @@
 const express = require('express');
-const storage = require('node-persist');
+const Loki = require('lokijs');
 const path = require('path');
 
 const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(express.json()); // Parse JSON bodies
-app.use(express.static('public')); // Serve frontend from /public
+app.use(express.json());
+app.use(express.static('public'));
 
-// Initialize node-persist (JSON-based storage)
+// Initialize LokiJS
+let db;
+let usersCollection;
+
 async function initStorage() {
-  await storage.init({
-    dir: './persist', // Centralized storage directory
-    stringify: JSON.stringify,
-    parse: JSON.parse,
-    encoding: 'utf8',
-    logging: false, // Set to true for debug logs
-    ttl: false, // No expiration
-    forgiveParseErrors: true, // Handle any corrupt files
-    writeQueue: true // Prevent file corruption
+  return new Promise((resolve, reject) => {
+    db = new Loki('defi-quest.db', {
+      autoload: true,
+      autosave: true,
+      autosaveInterval: 4000, // Save every 4 seconds
+      persistenceMethod: 'fs' // Use filesystem for persistence
+    });
+
+    db.loadDatabase({}, (err) => {
+      if (err) {
+        console.error('Error loading database:', err);
+        reject(err);
+        return;
+      }
+
+      // Get or create users collection
+      usersCollection = db.getCollection('users') || db.addCollection('users');
+      console.log('LokiJS initialized. Database: defi-quest.db');
+      resolve();
+    });
   });
-  console.log('Node-persist initialized. Storage in ./persist');
-}
-
-// JSON Model: Users as array of { id, name, email }
-let users = []; // In-memory cache (loaded from storage)
-
-// Load users on startup
-async function loadUsers() {
-  users = await storage.getItem('users') || [];
-  console.log(`Loaded ${users.length} users from storage`);
-}
-
-// Save users to storage
-async function saveUsers() {
-  await storage.setItem('users', users);
-  console.log('Users saved to storage');
 }
 
 // API Routes
-// POST /register: Add user (centralized)
+// POST /register: Add user
 app.post('/register', async (req, res) => {
   try {
     const { name, email } = req.body;
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email required' });
     }
-    const id = Math.random().toString(36).substr(2, 9); // Simple ID
-    const newUser = { id, name, email, timestamp: new Date().toISOString() };
-    users.push(newUser);
-    await saveUsers(); // Persist to JSON file
-    console.log('New registration:', newUser);
+    const id = Math.random().toString(36).substr(2, 9);
+    const newUser = {
+      id,
+      name,
+      email,
+      timestamp: new Date().toISOString()
+    };
+    
+    usersCollection.insert(newUser);
+    db.saveDatabase((err) => {
+      if (err) {
+        console.error('Error saving database:', err);
+      } else {
+        console.log('New registration:', newUser);
+      }
+    });
+    
     res.json({ success: true, user: newUser });
   } catch (err) {
     console.error('Registration error:', err);
@@ -59,8 +69,9 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// GET /users: Retrieve all users (for admin/debug)
+// GET /users: Retrieve all users
 app.get('/users', async (req, res) => {
+  const users = usersCollection.chain().data();
   res.json({ users });
 });
 
@@ -70,8 +81,11 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-initStorage().then(loadUsers).then(() => {
+initStorage().then(() => {
   app.listen(PORT, () => {
     console.log(`DeFi Quest server running at http://localhost:${PORT}`);
   });
+}).catch((err) => {
+  console.error('Failed to initialize storage:', err);
+  process.exit(1);
 });
