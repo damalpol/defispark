@@ -69,7 +69,7 @@ app.post('/register', async (req, res) => {
 });
 
 // GET /users: Retrieve all users
-app.get('/users', async (req, res) => {
+app.get('/users', (req, res) => {
   const users = usersCollection.chain().data();
   res.json({ users });
 });
