@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeFi Spark - Learn Decentralized Finance with Spartan Capital</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/i18next@23.15.1/dist/umd/i18next.min.js"></script>
+  <script src="https://kit.fontawesome.com/6a4ce6cd99.js" crossorigin="anonymous"></script>
+  <style>
+    /* Custom animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 1s ease-out forwards; }
+    .card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+    .hero-bg {
+      background-image: url('https://images.unsplash.com/photo-1642100358416-8f3e4e4a0e4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+      background-size: cover; background-position: center;
+    }
+    header { position: sticky; top: 0; z-index: 50; }
+    #back-to-top { position: fixed; bottom: 20px; right: 20px; display: none; }
+    #sticky-cta { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
+    /* Accordion styles */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+      opacity: 0;
+    }
+    .accordion-content.open { max-height: 300px; opacity: 1; } /* Adjust max-height as needed */
+    .accordion-header { cursor: pointer; }
+    .accordion-header i { transition: transform 0.3s ease; }
+    .accordion-header.open i { transform: rotate(180deg); }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Header -->
+  <header class="bg-blue-600 text-white py-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center px-4">
+      <h1 class="text-xl sm:text-2xl font-bold">DeFi Spark</h1>
+      <div class="flex items-center space-x-4">
+        <select id="language-switcher" class="bg-blue-800 text-white p-2 rounded text-sm sm:text-base">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+        <button class="sm:hidden text-2xl" onclick="toggleMenu()">&#9776;</button>
+      </div>
+      <nav id="nav-menu" class="hidden sm:flex space-x-4">
+        <a href="#home" class="hover:text-yellow-300 transition">Home</a>
+        <a href="#intro" class="hover:text-yellow-300 transition">About</a>
+        <a href="#content" class="hover:text-yellow-300 transition">Content</a>
+        <a href="#register" class="hover:text-yellow-300 transition">Register</a>
+        <a href="#plan" class="hover:text-yellow-300 transition">Study Plan</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Introduction Section -->
+  <section id="intro" class="py-12 bg-white">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold mb-6 fade-in" data-i18n="intro_title">Meet Your Guide to Financial Freedom</h2>
+      <div class="max-w-2xl mx-auto bg-gray-50 p-8 rounded-lg shadow-lg card transition duration-300">
+        <img src="./icons8-spartan-helmet-100.png" alt="Spartan Capital" class="w-24 h-24 mx-auto mb-4">
+        <h3 class="text-xl font-semibold mb-2">Damian, Founder of Spartan Capital</h3>
+        <p class="text-gray-700 mb-4" data-i18n="intro_message">
+          Hi, I'm Damian, a crypto financial manager and founder of Spartan Capital. Are you ready to invest like the banks do, creating passive income and generational wealth? With my proven DeFi strategies, you can learn to earn up to 100% APY ROI in just a few minutes a day. <a href="https://spartan-blue.vercel.app/" target="_blank" class="text-blue-600 hover:underline">See my real investment results</a> and join me to achieve financial freedom through decentralized finance!
+        </p>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero-bg text-black py-16 text-center fade-in">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4" data-i18n="hero_title">Master DeFi in 4 Weeks!</h2>
+      <p class="text-base sm:text-lg md:text-xl mb-6" data-i18n="hero_subtitle">Learn Decentralized Finance with Damian and earn an NFT badge for only $50 USDT.</p>
+      <button class="bg-yellow-500 text-black px-6 py-3 rounded font-semibold hover:bg-yellow-600 transition transform hover:scale-105" onclick="showRegistration()" data-i18n="join_button">Join Now! Its FREE</button>
+    </div>
+  </section>
+
+  <!-- Testimonial Section -->
+  <section id="testimonials" class="py-12 bg-gray-200">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold mb-8 fade-in" data-i18n="testimonials_title">What Our Students Say</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow card transition duration-300">
+          <p class="text-gray-700 italic" data-i18n="testimonial_1">"Damian's course transformed my financial future! I earned 80% ROI in my first DeFi investment."</p>
+          <p class="mt-4 font-semibold">– Sarah K., Crypto Investor</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow card transition duration-300">
+          <p class="text-gray-700 italic" data-i18n="testimonial_2">"Joining Spartan Capital was the best decision. The course is clear, and I’m already seeing passive income!"</p>
+          <p class="mt-4 font-semibold">– James T., Entrepreneur</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Course Content -->
+  <section id="content" class="py-12 bg-white">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 fade-in" data-i18n="content_title">Course Content</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="card bg-gray-50 p-6 rounded shadow transition duration-300">
+          <img src="https://img.icons8.com/color/48/000000/wallet.png" alt="Wallet" class="w-12 h-12 mx-auto mb-4">
+          <h3 class="text-xl font-semibold" data-i18n="content_wallet">Crypto Wallets</h3>
+          <p data-i18n="content_wallet_desc">Learn to set up and secure your crypto wallet.</p>
+        </div>
+        <div class="card bg-gray-50 p-6 rounded shadow transition duration-300">
+          <img src="https://img.icons8.com/color/48/000000/coins.png" alt="Coins" class="w-12 h-12 mx-auto mb-4">
+          <h3 class="text-xl font-semibold" data-i18n="content_swaps">Swaps & Trading</h3>
+          <p data-i18n="content_swaps_desc">Master token swaps on decentralized exchanges.</p>
+        </div>
+        <div class="card bg-gray-50 p-6 rounded shadow transition duration-300">
+          <img src="https://img.icons8.com/color/48/000000/nft.png" alt="NFT" class="w-12 h-12 mx-auto mb-4">
+          <h3 class="text-xl font-semibold" data-i18n="content_nft">NFT Badge</h3>
+          <p data-i18n="content_nft_desc">Earn a unique NFT upon course completion.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Registration Form -->
+  <section id="register" class="hidden py-12 bg-gray-200">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 fade-in" data-i18n="register_title">Join Damian’s DeFi Spark</h2>
+      <form id="registration-form" class="max-w-md mx-auto space-y-4">
+        <input type="text" id="name" class="w-full p-3 rounded border focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="Full Name" required>
+        <input type="email" id="email" class="w-full p-3 rounded border focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="Email" required>
+        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded w-full hover:bg-blue-700 transition" data-i18n="register_button">Start Your Journey</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Study Plan -->
+  <section id="plan" class="py-12 bg-gray-100">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 fade-in" data-i18n="study_plan_title">Your 4-Week DeFi Journey (November 2025)</h2>
+      <div class="max-w-2xl mx-auto space-y-4">
+        <!-- Week 1 -->
+        <div class="bg-white rounded-lg shadow accordion-header" onclick="toggleAccordion('week1')">
+          <div class="p-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold" data-i18n="study_plan_week1">Week 1: Free Intro - Wallets, Terms, Swaps</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div id="week1" class="accordion-content p-4 text-gray-700">
+            <p class="font-semibold" data-i18n="study_plan_week1_goal">Goal: Build a solid DeFi foundation.</p>
+            <p data-i18n="study_plan_week1_desc">Kick off with a free introduction to decentralized finance. Learn to set up and secure a crypto wallet (e.g., MetaMask), understand essential DeFi terms like liquidity pools and gas fees, and execute your first token swap on a decentralized exchange like Uniswap. By the end, you’ll navigate the DeFi ecosystem with confidence, ready to invest like a pro.</p>
+          </div>
+        </div>
+        <!-- Week 2 -->
+        <div class="bg-white rounded-lg shadow accordion-header" onclick="toggleAccordion('week2')">
+          <div class="p-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold" data-i18n="study_plan_week2">Week 2: DeFi Basics & Smart Contracts</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div id="week2" class="accordion-content p-4 text-gray-700">
+            <p class="font-semibold" data-i18n="study_plan_week2_goal">Goal: Master DeFi protocols and smart contracts.</p>
+            <p data-i18n="study_plan_week2_desc">Dive into the mechanics of top DeFi platforms like Aave and Compound. Understand how smart contracts power decentralized apps and practice interacting with them safely. You’ll learn to evaluate DeFi projects for profitability and security, setting the stage for high-ROI investments.</p>
+          </div>
+        </div>
+        <!-- Week 3 -->
+        <div class="bg-white rounded-lg shadow accordion-header" onclick="toggleAccordion('week3')">
+          <div class="p-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold" data-i18n="study_plan_week3">Week 3: Yield Farming & Staking</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div id="week3" class="accordion-content p-4 text-gray-700">
+            <p class="font-semibold" data-i18n="study_plan_week3_goal">Goal: Start generating passive income.</p>
+            <p data-i18n="study_plan_week3_desc">Learn Damian’s proven strategies for yield farming and staking to achieve up to 100% APY ROI, as seen on <a href='https://spartan-blue.vercel.app/' target='_blank' class='text-blue-600 hover:underline'>Spartan Capital’s results</a>. Master providing liquidity, staking assets, and optimizing rewards while managing risks. Start building your passive income stream this week!</p>
+          </div>
+        </div>
+        <!-- Week 4 -->
+        <div class="bg-white rounded-lg shadow accordion-header" onclick="toggleAccordion('week4')">
+          <div class="p-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold" data-i18n="study_plan_week4">Week 4: Risk Management & NFT Badge</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div id="week4" class="accordion-content p-4 text-gray-700">
+            <p class="font-semibold" data-i18n="study_plan_week4_goal">Goal: Secure your wealth and earn your NFT badge.</p>
+            <p data-i18n="study_plan_week4_desc">Learn advanced risk management techniques to protect your DeFi investments, including diversification and scam detection. Complete the course by minting a unique NFT badge on Polygon, showcasing your expertise. Join Damian’s community of successful investors and secure your financial future!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sticky CTA Banner -->
+  <div id="sticky-cta" class="bg-yellow-500 text-black py-4 text-center">
+    <p class="text-sm sm:text-base" data-i18n="cta_banner">Only 50 spots left! Register by October 31, 2025, for a  free introductory class!</p>
+    <button class="bg-blue-600 text-white px-4 py-2 rounded mt-2 hover:bg-blue-700 transition" onclick="showRegistration()" data-i18n="join_button">Join Now! Its FREE</button>
+  </div>
+
+  <!-- Social Sharing -->
+  <section id="share" class="py-8 bg-gray-100 text-center">
+    <h3 class="text-lg font-semibold mb-4" data-i18n="share_title">Spread the Word</h3>
+    <div class="flex justify-center space-x-4">
+      <a href="https://x.com/intent/tweet?text=Join%20Damian's%20DeFi%20Quest%20to%20earn%20up%20to%20100%25%20APY%20with%20Spartan%20Capital!%20https://spartan-blue.vercel.app/" target="_blank" class="text-blue-600 hover:text-blue-800">
+        <i class="fab fa-x-twitter fa-2x"></i>
+      </a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://spartan-blue.vercel.app/" target="_blank" class="text-blue-600 hover:text-blue-800">
+        <i class="fab fa-linkedin fa-2x"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- Back to Top Button -->
+  <button id="back-to-top" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+
+  <!-- JavaScript -->
+  <script>
+    // Initialize i18next for multilingual support
+    i18next.init({
+      lng: 'en',
+      fallbackLng: 'en',
+      debug: true,
+      resources: {
+        en: {
+          translation: {
+            intro_title: "Meet Your Guide to Financial Freedom",
+            intro_message: "Hi, I'm Damian, a crypto financial manager and founder of Spartan Capital. Are you ready to invest like the banks do, creating passive income and generational wealth? With my proven DeFi strategies, you can learn to earn up to 100% APY ROI in just a few minutes a day. <a href='https://spartan-blue.vercel.app/' target='_blank' class='text-blue-600 hover:underline'>See my real investment results</a> and join me to achieve financial freedom through decentralized finance!",
+            hero_title: "Master DeFi in 4 Weeks!",
+            hero_subtitle: "Learn Decentralized Finance with Damian and earn an NFT badge for only $50 USDT.",
+            content_title: "Course Content",
+            content_wallet: "Crypto Wallets",
+            content_wallet_desc: "Learn to set up and secure your crypto wallet.",
+            content_swaps: "Swaps & Trading",
+            content_swaps_desc: "Master token swaps on decentralized exchanges.",
+            content_nft: "NFT Badge",
+            content_nft_desc: "Earn a unique NFT upon course completion.",
+            testimonials_title: "What Our Students Say",
+            testimonial_1: "\"Damian's course transformed my financial future! I earned 80% ROI in my first DeFi investment.\"",
+            testimonial_2: "\"Joining Spartan Capital was the best decision. The course is clear, and I’m already seeing passive income!\"",
+            register_title: "Join DeFi Spark",
+            register_button: "Start Your Journey",
+            join_button: "Join Now! Its FREE",
+            study_plan_title: "Your 4-Week DeFi Journey (November 2025)",
+            study_plan_week1: "Week 1: Free Intro - Wallets, Terms, Swaps",
+            study_plan_week1_goal: "Goal: Build a solid DeFi foundation.",
+            study_plan_week1_desc: "Kick off with a free introduction to decentralized finance. Learn to set up and secure a crypto wallet (e.g., MetaMask), understand essential DeFi terms like liquidity pools and gas fees, and execute your first token swap on a decentralized exchange like Uniswap. By the end, you’ll navigate the DeFi ecosystem with confidence, ready to invest like a pro.",
+            study_plan_week2: "Week 2: DeFi Basics & Smart Contracts",
+            study_plan_week2_goal: "Goal: Master DeFi protocols and smart contracts.",
+            study_plan_week2_desc: "Dive into the mechanics of top DeFi platforms like Aave and Compound. Understand how smart contracts power decentralized apps and practice interacting with them safely. You’ll learn to evaluate DeFi projects for profitability and security, setting the stage for high-ROI investments.",
+            study_plan_week3: "Week 3: Yield Farming & Staking",
+            study_plan_week3_goal: "Goal: Start generating passive income.",
+            study_plan_week3_desc: "Learn Damian’s proven strategies for yield farming and staking to achieve up to 100% APY ROI, as seen on <a href='https://spartan-blue.vercel.app/' target='_blank' class='text-blue-600 hover:underline'>Spartan Capital’s results</a>. Master providing liquidity, staking assets, and optimizing rewards while managing risks. Start building your passive income stream this week!",
+            study_plan_week4: "Week 4: Risk Management & NFT Badge",
+            study_plan_week4_goal: "Goal: Secure your wealth and earn your NFT badge.",
+            study_plan_week4_desc: "Learn advanced risk management techniques to protect your DeFi investments, including diversification and scam detection. Complete the course by minting a unique NFT badge on Polygon, showcasing your expertise. Join Damian’s community of successful investors and secure your financial future!",
+            cta_banner: "Only 50 spots left! Register by October 31, 2025, for a free introductory class!",
+            share_title: "Spread the Word"
+          }
+        },
+        es: {
+          translation: {
+            intro_title: "Conoce a Tu Guía hacia la Libertad Financiera",
+            intro_message: "¡Hola! Soy Damian, gerente financiero de criptomonedas y fundador de Spartan Capital. ¿Estás listo para invertir como lo hacen los bancos, creando ingresos pasivos y riqueza generacional? Con mis estrategias probadas de DeFi, puedes aprender a obtener hasta un 100% de APY ROI en solo minutos al día. <a href='https://spartan-blue.vercel.app/' target='_blank' class='text-blue-600 hover:underline'>Ve mis resultados de inversión reales</a> y únete para lograr la libertad financiera a través de las finanzas descentralizadas!",
+            hero_title: "¡Domina DeFi en 4 semanas!",
+            hero_subtitle: "Aprende finanzas descentralizadas con Damian y gana una insignia NFT por solo $50 USDT.",
+            content_title: "Contenido del curso",
+            content_wallet: "Billeteras cripto",
+            content_wallet_desc: "Aprende a configurar y asegurar tu billetera cripto.",
+            content_swaps: "Intercambios y trading",
+            content_swaps_desc: "Domina los intercambios de tokens en exchanges descentralizados.",
+            content_nft: "Insignia NFT",
+            content_nft_desc: "Gana una insignia NFT única al completar el curso.",
+            testimonials_title: "Lo que dicen nuestros estudiantes",
+            testimonial_1: "\"¡El curso de Damian transformó mi futuro financiero! Obtuve un 80% de ROI en mi primera inversión DeFi.\"",
+            testimonial_2: "\"Unirme a Spartan Capital fue la mejor decisión. ¡El curso es claro y ya veo ingresos pasivos!\"",
+            register_title: "Únete a la búsqueda DeFi de Damian",
+            register_button: "Comienza tu viaje",
+            join_button: "¡Únete ahora! Es GRATIS",
+            study_plan_title: "Tu viaje DeFi de 4 semanas (Noviembre 2025)",
+            study_plan_week1: "Semana 1: Introducción gratuita - Billeteras, términos, intercambios",
+            study_plan_week1_goal: "Objetivo: Construir una base sólida en DeFi.",
+            study_plan_week1_desc: "Comienza con una introducción gratuita a las finanzas descentralizadas. Aprende a configurar y asegurar una billetera cripto (por ejemplo, MetaMask), comprende términos clave de DeFi como pools de liquidez y tarifas de gas, y realiza tu primer intercambio de tokens en un exchange descentralizado como Uniswap. ¡Al final, navegarás el ecosistema DeFi con confianza, listo para invertir como profesional!",
+            study_plan_week2: "Semana 2: Fundamentos de DeFi y contratos inteligentes",
+            study_plan_week2_goal: "Objetivo: Dominar los protocolos DeFi y contratos inteligentes.",
+            study_plan_week2_desc: "Explora la mecánica de plataformas DeFi líderes como Aave y Compound. Comprende cómo los contratos inteligentes impulsan aplicaciones descentralizadas y practica interactuar con ellos de manera segura. Aprenderás a evaluar proyectos DeFi por su rentabilidad y seguridad, preparando el terreno para inversiones de alto ROI.",
+            study_plan_week3: "Semana 3: Yield Farming y Staking",
+            study_plan_week3_goal: "Objetivo: Comenzar a generar ingresos pasivos.",
+            study_plan_week3_desc: "Aprende las estrategias probadas de Damian para yield farming y staking, logrando hasta un 100% de APY ROI, como se muestra en <a href='https://spartan-blue.vercel.app/' target='_blank' class='text-blue-600 hover:underline'>los resultados de Spartan Capital</a>. Domina cómo proporcionar liquidez, hacer staking de activos y optimizar recompensas mientras gestionas riesgos. ¡Comienza a construir tu flujo de ingresos pasivos esta semana!",
+            study_plan_week4: "Semana 4: Gestión de riesgos e insignia NFT",
+            study_plan_week4_goal: "Objetivo: Proteger tu riqueza y ganar tu insignia NFT.",
+            study_plan_week4_desc: "Aprende técnicas avanzadas de gestión de riesgos para proteger tus inversiones DeFi, incluyendo diversificación y detección de estafas. Completa el curso acuñando una insignia NFT única en Polygon, mostrando tu experiencia. ¡Únete a la comunidad de inversores exitosos de Damian y asegura tu futuro financiero!",
+            cta_banner: "¡Solo 50 plazas disponibles! Regístrate antes del 31 de octubre de 2025 para obtener una clase gratuita introductoria.",
+            share_title: "Comparte la noticia"
+          }
+        }
+      }
+    }, (err) => {
+      if (err) {
+        console.error('i18next initialization error:', err);
+        return;
+      }
+      console.log('i18next initialized successfully');
+      updateTranslations();
+    });
+
+    // Function to update translations in the DOM
+    function updateTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(elem => {
+        const key = elem.getAttribute('data-i18n');
+        const translation = i18next.t(key);
+        if (translation) {
+          elem.innerHTML = translation;
+        } else {
+          console.warn(`Translation missing for key: ${key}`);
+          elem.innerHTML = elem.innerHTML || key;
+        }
+      });
+    }
+
+    // Language switcher event listener
+    document.getElementById('language-switcher').addEventListener('change', (e) => {
+      const newLang = e.target.value;
+      console.log(`Attempting to switch language to: ${newLang}`);
+      i18next.changeLanguage(newLang, (err) => {
+        if (err) {
+          console.error('Language change error:', err);
+          return;
+        }
+        console.log(`Language switched to: ${newLang}`);
+        updateTranslations();
+      });
+    });
+
+    // Accordion toggle function
+    function toggleAccordion(weekId) {
+      const content = document.getElementById(weekId);
+      const header = content.parentElement;
+      const isOpen = content.classList.contains('open');
+      // Close all other accordions
+      document.querySelectorAll('.accordion-content').forEach(item => {
+        item.classList.remove('open');
+        item.parentElement.classList.remove('open');
+      });
+      // Toggle the clicked accordion
+      if (!isOpen) {
+        content.classList.add('open');
+        header.classList.add('open');
+      }
+    }
+
+    // Registration form handling (server-side via fetch)
+    document.getElementById('registration-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      try {
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email })
+        });
+        const result = await response.json();
+        if (result.success) {
+          console.log('User registered on server:', result.user);
+          alert('Registration successful! Welcome to Damian’s DeFi Spark.');
+          document.getElementById('registration-form').reset();
+          document.getElementById('register').classList.add('hidden');
+        } else {
+          alert('Registration failed: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Registration fetch error:', err);
+        alert('Network error. Please try again.');
+      }
+    });
+
+    // Show registration form
+    function showRegistration() {
+      document.getElementById('register').classList.remove('hidden');
+      window.scrollTo({ top: document.getElementById('register').offsetTop, behavior: 'smooth' });
+    }
+
+    // Mobile menu toggle
+    function toggleMenu() {
+      const menu = document.getElementById('nav-menu');
+      menu.classList.toggle('hidden');
+      menu.classList.toggle('flex');
+      menu.classList.toggle('flex-col');
+      menu.classList.toggle('absolute');
+      menu.classList.toggle('top-16');
+      menu.classList.toggle('left-0');
+      menu.classList.toggle('w-full');
+      menu.classList.toggle('bg-blue-600');
+      menu.classList.toggle('p-4');
+    }
+
+    // Back to top button
+    const backToTop = document.getElementById('back-to-top');
+    window.addEventListener('scroll', () => {
+      backToTop.style.display = window.scrollY > 300 ? 'block' : 'none';
+    });
+    backToTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Ensure initial translation on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      if (i18next.isInitialized) {
+        updateTranslations();
+      } else {
+        i18next.on('initialized', updateTranslations);
+      }
+    });
+  </script>
+</body>
+</html>
