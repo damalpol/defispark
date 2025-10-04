@@ -3,7 +3,6 @@ const Loki = require('lokijs');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
 
 // Middleware
 app.use(express.json());
@@ -81,10 +80,8 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-initStorage().then(() => {
-  app.listen(PORT, () => {
-    console.log(`DeFi Quest server running at http://localhost:${PORT}`);
-  });
+initStorage().then(() => {  
+    console.log(`DeFi Quest server running `); 
 }).catch((err) => {
   console.error('Failed to initialize storage:', err);
   process.exit(1);
