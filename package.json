@@ -15,7 +15,7 @@
   "type": "commonjs",
   "dependencies": {
     "@types/express": "^5.0.0",
-    "lokyjs": "^1.5.12"
+    "@supabase/supabase-js": "^2.58.0"
   },
   "devDependencies": {
    "@types/node": "^22.0.0"
