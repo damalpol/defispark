@@ -15,7 +15,7 @@
   "type": "commonjs",
   "dependencies": {
     "@types/express": "^5.0.0",
-    "node-persist": "^4.0.4"
+    "lokyjs": "^1.5.12"
   },
   "devDependencies": {
    "@types/node": "^22.0.0"
