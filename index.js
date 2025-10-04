@@ -1,40 +1,18 @@
 const express = require('express');
-const Loki = require('lokijs');
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 
 const app = express();
+const PORT = 3000;
+
+// Initialize Supabase client
+const supabaseUrl = 'https://vepzznfymiqzqrxdhgna.supabase.co'; // Replace with your Supabase URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlcHp6bmZ5bWlxenFyeGRoZ25hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDAsImV4cCI6MjA3NTE3OTI0MH0.yBi8jhSCXB6IDM732hu2ab_uiZHa1FFbkBDLczoERR8'; // Replace with your Supabase anon key
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
-app.use(express.json());
-app.use(express.static('public'));
-
-// Initialize LokiJS
-let db;
-let usersCollection;
-
-async function initStorage() {
-  return new Promise((resolve, reject) => {
-    db = new Loki('defi-quest.db', {
-      autoload: true,
-      autosave: true,
-      autosaveInterval: 4000, // Save every 4 seconds
-      persistenceMethod: 'fs' // Use filesystem for persistence
-    });
-
-    db.loadDatabase({}, (err) => {
-      if (err) {
-        console.error('Error loading database:', err);
-        reject(err);
-        return;
-      }
-
-      // Get or create users collection
-      usersCollection = db.getCollection('users') || db.addCollection('users');
-      console.log('LokiJS initialized. Database: defi-quest.db');
-      resolve();
-    });
-  });
-}
+app.use(express.json()); // Parse JSON bodies
+app.use(express.static('public')); // Serve frontend from /public
 
 // API Routes
 // POST /register: Add user
@@ -44,23 +22,20 @@ app.post('/register', async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email required' });
     }
-    const id = Math.random().toString(36).substr(2, 9);
-    const newUser = {
-      id,
-      name,
-      email,
-      timestamp: new Date().toISOString()
-    };
-    
-    usersCollection.insert(newUser);
-    db.saveDatabase((err) => {
-      if (err) {
-        console.error('Error saving database:', err);
-      } else {
-        console.log('New registration:', newUser);
-      }
-    });
-    
+
+    // Insert user into Supabase 'users' table
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{ name, email }])
+      .select(); // Return the inserted user
+
+    if (error) {
+      console.error('Registration error:', error);
+      return res.status(500).json({ error: 'Failed to register user' });
+    }
+
+    const newUser = data[0]; // Get the inserted user data
+    console.log('New registration:', newUser);
     res.json({ success: true, user: newUser });
   } catch (err) {
     console.error('Registration error:', err);
@@ -68,10 +43,24 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// GET /users: Retrieve all users
+// GET /users: Retrieve all users (for admin/debug)
 app.get('/users', async (req, res) => {
-  const users = usersCollection.chain().data();
-  res.json({ users });
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching users:', error);
+      return res.status(500).json({ error: 'Failed to fetch users' });
+    }
+
+    console.log(`Fetched ${data.length} users from Supabase`);
+    res.json({ users: data });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Serve frontend
@@ -80,9 +69,6 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-initStorage().then(() => {  
-    console.log(`DeFi Quest server running `); 
-}).catch((err) => {
-  console.error('Failed to initialize storage:', err);
-  process.exit(1);
+app.listen(PORT, () => {
+  console.log(`DeFi Quest server running at http://localhost:${PORT}`);
 });
