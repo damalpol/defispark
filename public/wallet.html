@@ -222,7 +222,7 @@
 
 <script>
 // ──────────────────────────────────────────────
-// Wallet Core (inspired by defispark/wallet.js style)
+// Wallet Core
 // ──────────────────────────────────────────────
 
 const USDT = "0x55d398326f99059ff775485246999027b3197955";
@@ -341,7 +341,7 @@ async function sendUSDT() {
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner
+// QR Scanner + Improved Parsing
 // ──────────────────────────────────────────────
 
 let stream;
@@ -384,22 +384,73 @@ function scan() {
 }
 
 function handleScanned(data) {
-  document.getElementById("scanResult").textContent = "Detected: " + data.substring(0,40) + "...";
-  if (data.startsWith("0x") && data.length === 42) {
-    document.getElementById("sendTo").value = data;
-    openTab("send");
-  } else if (data.includes("transfer?")) {
+  console.log("Raw scanned QR:", data); // Debug: check this in browser console (F12)
+
+  document.getElementById("scanResult").textContent = "Detected: " + (data.substring(0,40) + (data.length > 40 ? "..." : ""));
+
+  let address = null;
+  let amount = null;
+
+  // Case 1: Plain Ethereum-style address
+  if (data.match(/^0x[a-fA-F0-9]{40}$/)) {
+    address = data;
+  }
+
+  // Case 2: ethereum: URI scheme (most common for amount + address)
+  else if (data.toLowerCase().startsWith("ethereum:")) {
     try {
-      const url = new URL(data.startsWith("ethereum:") ? data.replace("ethereum:", "https://") : data);
-      const addr = url.searchParams.get("address");
-      const val = url.searchParams.get("uint256");
-      if (addr) document.getElementById("sendTo").value = addr;
-      if (val) {
-        const amt = Number(web3.utils.fromWei(val, "ether")).toFixed(6);
-        document.getElementById("sendAmount").value = amt;
+      // Trick to parse as URL (replace scheme with http)
+      const uri = new URL(data.replace(/^ethereum:/i, "https://dummy/"));
+      // Address usually in path or address param
+      address = uri.pathname.replace(/^\//, '').split('?')[0] || uri.searchParams.get('address');
+
+      // Amount: value= (native BNB) or uint256= (token amount)
+      let weiStr = uri.searchParams.get('value') || uri.searchParams.get('uint256');
+      if (weiStr) {
+        amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
       }
-      openTab("send");
-    } catch(e) {}
+
+      // Optional: warn if wrong chain
+      if (uri.searchParams.has('chainId') && uri.searchParams.get('chainId') !== "56") {
+        alert("Warning: QR is for chain ID " + uri.searchParams.get('chainId') + " (not BSC 56)");
+      }
+    } catch (e) {
+      console.error("URI parse failed:", e);
+    }
+  }
+
+  // Case 3: Old /transfer? format (your original style)
+  else if (data.includes("/transfer?")) {
+    try {
+      let cleaned = data.split('/transfer?')[1] || data;
+      const params = new URLSearchParams(cleaned);
+      address = params.get('address');
+      const wei = params.get('uint256');
+      if (wei) {
+        amount = Number(web3.utils.fromWei(wei, "ether")).toFixed(6);
+      }
+    } catch (e) {}
+  }
+
+  // Case 4: Fallback - extract any valid address from the text
+  else if (data.includes("0x")) {
+    const match = data.match(/0x[a-fA-F0-9]{40}/i);
+    if (match) {
+      address = match[0];
+    }
+  }
+
+  // Apply results
+  if (address) {
+    document.getElementById("sendTo").value = address;
+    if (amount && amount > 0) {
+      document.getElementById("sendAmount").value = amount;
+    }
+    openTab("send");
+    // Optional success feedback
+    alert("QR parsed successfully!\nAddress filled" + (amount ? " + amount" : ""));
+  } else {
+    alert("Could not extract valid BSC address from this QR.\n\nRaw data:\n" + data.substring(0, 120));
   }
 }
 
