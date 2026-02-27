@@ -68,6 +68,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve frontend
+app.get('/wallet', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'wallet.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`DeFi Quest server running at http://localhost:${PORT}`);
