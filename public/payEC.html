@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>DeFiSpark • USDT (BSC)</title>
+  <script src="https://unpkg.com/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
+  <script src="https://unpkg.com/jsqr@1.4.0/dist/jsqr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@4.0.3/dist/web3.min.js"></script>
+  <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --primary: #8b5cf6;
+      --primary-dark: #7c3aed;
+      --success: #10b981;
+      --danger: #ef4444;
+      --input-bg: #334155;
+      --border: #475569;
+    }
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --primary: #7c3aed;
+      --primary-dark: #6d28d9;
+      --input-bg: #f1f5f9;
+      --border: #e2e8f0;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px 16px 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: 24px;
+      padding: 18px 14px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    header { text-align: center; margin-bottom: 14px; }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: var(--text-secondary); font-size: 14px; }
+    .theme-toggle {
+      position: absolute; top: 16px; right: 16px;
+      background: none; border: none; font-size: 20px; cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .warning {
+      background: rgba(239,68,68,0.15); color: #fca5a5;
+      padding: 10px 14px; border-radius: 16px; font-size: 13px;
+      margin: 12px 0; border: 1px solid rgba(239,68,68,0.3);
+    }
+    .balance-card {
+      background: linear-gradient(135deg, #2d3748, #1e293b);
+      border-radius: 20px; padding: 18px 16px; text-align: center;
+      margin: 16px 0; border: 1px solid var(--border);
+    }
+    .balance-card h2 { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+    .balance-card small { color: var(--text-secondary); font-size: 14px; }
+    .address-display {
+      background: var(--input-bg); padding: 14px; border-radius: 16px;
+      font-family: monospace; font-size: 15px; word-break: break-all;
+      position: relative; margin: 12px 0; border: 1px solid var(--border);
+    }
+    .copy-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: var(--primary); color: white; border: none;
+      padding: 6px 12px; border-radius: 12px; cursor: pointer;
+      font-size: 12px; font-weight: 600;
+    }
+    .tab-bar {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: var(--card); border-radius: 24px; padding: 8px;
+      display: flex; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      border: 1px solid var(--border); width: calc(100% - 32px); max-width: 420px;
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1; background: transparent; border: none;
+      color: var(--text-secondary); font-size: 13px; font-weight: 600;
+      padding: 10px 8px; border-radius: 16px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .tab-btn.active { background: rgba(139,92,246,0.15); color: var(--primary); }
+    .tab-content { display: none; padding: 8px 0 20px; }
+    .tab-content.active { display: block; }
+    .input-group { margin: 10px 0; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-secondary); font-size: 13px; }
+    input {
+      width: 100%; padding: 12px 16px; font-size: 16px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 16px; color: var(--text); outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
+    button.main-btn {
+      width: 100%; background: var(--primary); color: white; border: none;
+      padding: 14px; border-radius: 16px; font-size: 15px; font-weight: 600;
+      cursor: pointer; margin: 8px 0 4px; transition: background 0.2s;
+    }
+    button.main-btn:hover { background: var(--primary-dark); }
+    button.scan-btn {
+      width: 100%; background: #64748b; color: white; border: none;
+      padding: 12px; border-radius: 16px; font-size: 14px; font-weight: 600;
+      cursor: pointer; margin: 8px 0; transition: background 0.2s;
+    }
+    button.scan-btn:hover { background: #475569; }
+    #qrcode { margin: 20px auto; text-align:center; }
+    #video { width: 100%; max-width: 320px; border-radius: 16px; margin: 16px auto; display: block; border: 2px solid var(--border); }
+    .status {
+      padding: 12px; border-radius: 16px; font-weight: 600;
+      margin: 8px 0; text-align: center; min-height: 50px;
+      display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px;
+    }
+    .waiting { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .payment-hint {
+      font-size: 13px; color: var(--text-secondary); text-align: center; margin: 8px 0 16px;
+    }
+    @media (max-width: 500px) {
+      body { padding: 12px 12px 100px; }
+      .container { padding: 18px 14px; border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+<div class="container">
+  <header>
+    <h1>DeFiSpark</h1>
+    <p class="subtitle">USDT on Binance Smart Chain • Simple P2P Payments</p>
+  </header>
+
+  <div class="warning">
+    ⚠️ Demo / Educational wallet only<br>
+    Keys stored in browser • Use tiny amounts • Save private key!
+  </div>
+
+  <!-- Wallet Setup -->
+  <div id="walletSetup">
+    <div class="input-group">
+      <label>Private Key (hex) or Generate New</label>
+      <input type="text" id="privateKey" placeholder="0x... (66 chars)">
+    </div>
+    <button class="main-btn" onclick="generateNewWallet()">Create New Wallet</button>
+    <button class="main-btn" onclick="importWallet()" style="background:#4b5563;">Import Existing Wallet</button>
+  </div>
+
+  <!-- Main Dashboard -->
+  <div id="walletDashboard" style="display:none;">
+    <div class="balance-card">
+      <h2><span id="balance">0.00</span> USDT</h2>
+      <small>Balance • BSC Network</small>
+      <button onclick="checkBalance()" style="margin-top:10px; background:transparent; border:1px solid var(--border); color:var(--text-secondary); padding:6px 14px; border-radius:12px; font-size:12px;">Refresh</button>
+    </div>
+
+    <div class="address-display">
+      <span id="userAddress">—</span>
+      <button class="copy-btn" onclick="copyAddress()">Copy</button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="openTab('receive')">💰 Request</button>
+      <button class="tab-btn" onclick="openTab('send')">↑ Send</button>
+      <button class="tab-btn" onclick="openTab('scan')">📷 Scan to Pay</button>
+    </div>
+
+    <!-- Request Payment Tab (Receive) -->
+    <div id="receive" class="tab-content active">
+      <div class="payment-hint">
+        Fill amount → Generate QR<br>
+        <strong>Others scan this QR to pay you instantly</strong>
+      </div>
+      <div class="input-group">
+        <label>Request Amount (USDT)</label>
+        <input type="number" id="receiveAmount" placeholder="e.g. 50" step="0.01" min="0.01">
+      </div>
+      <button class="main-btn" onclick="generateReceiveQR()">Generate Payment QR</button>
+      <div id="qrcode"></div>
+    </div>
+
+    <!-- Send Tab (with direct QR scanner) -->
+    <div id="send" class="tab-content">
+      <div class="input-group">
+        <label>Send to Address</label>
+        <input type="text" id="sendTo" placeholder="0x...">
+        <button onclick="startQuickScan()" class="scan-btn">📷 Scan QR Code for Recipient</button>
+      </div>
+      <div class="input-group">
+        <label>Amount (USDT)</label>
+        <input type="number" id="sendAmount" placeholder="e.g. 10" step="0.01" min="0.01">
+      </div>
+      <button class="main-btn" onclick="sendUSDT()">Send USDT Now</button>
+      <div id="sendStatus" class="status waiting" style="display:none;">
+        <div class="spinner"></div>
+        <span id="sendMsg">Processing transaction...</span>
+      </div>
+    </div>
+
+    <!-- Scan to Pay Tab -->
+    <div id="scan" class="tab-content">
+      <div class="payment-hint">
+        Point camera at any payment QR<br>
+        (yours or someone else's)
+      </div>
+      <button class="main-btn" onclick="startQRScanner()">Start Camera Scanner</button>
+      <video id="video" playsinline autoplay muted style="display:none;"></video>
+      <div id="scanResult" style="margin:16px 0; color:var(--success); font-weight:600; text-align:center;"></div>
+      <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none; background:var(--danger);">Stop Scanner</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// Theme Toggle
+// ──────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute("data-theme");
+  html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+  const toggleBtn = document.querySelector(".theme-toggle");
+  toggleBtn.textContent = current === "dark" ? "☀️" : "🌙";
+}
+
+// ──────────────────────────────────────────────
+// Wallet Core
+// ──────────────────────────────────────────────
+const USDT = "0x55d398326f99059ff775485246999027b3197955";
+const BSC_RPC = "https://bsc-dataseed.binance.org/";
+const web3 = new Web3(BSC_RPC);
+const usdt = new web3.eth.Contract([
+  {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
+  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
+], USDT);
+
+let account = null;
+
+function generateNewWallet() {
+  account = web3.eth.accounts.create();
+  saveWallet();
+  showWallet();
+}
+
+function importWallet() {
+  const pk = document.getElementById("privateKey").value.trim();
+  if (!pk.startsWith("0x") || pk.length !== 66) return alert("Invalid private key format");
+  try {
+    account = web3.eth.accounts.privateKeyToAccount(pk);
+    saveWallet();
+    showWallet();
+  } catch(e) { alert("Invalid private key"); }
+}
+
+function saveWallet() {
+  if (account) {
+    localStorage.setItem("defispark_wallet_pk", account.privateKey);
+    document.getElementById("privateKey").value = account.privateKey;
+  }
+}
+
+function loadWallet() {
+  const pk = localStorage.getItem("defispark_wallet_pk");
+  if (pk) {
+    account = web3.eth.accounts.privateKeyToAccount(pk);
+    showWallet();
+  }
+}
+
+function showWallet() {
+  document.getElementById("walletSetup").style.display = "none";
+  document.getElementById("walletDashboard").style.display = "block";
+  document.getElementById("userAddress").textContent = account.address;
+  checkBalance();
+}
+
+function copyAddress() {
+  navigator.clipboard.writeText(account.address);
+  alert("✅ Address copied to clipboard!");
+}
+
+async function checkBalance() {
+  if (!account) return;
+  try {
+    const bal = await usdt.methods.balanceOf(account.address).call();
+    document.getElementById("balance").textContent = Number(web3.utils.fromWei(bal, "ether")).toFixed(4);
+  } catch(e) { console.error(e); }
+}
+
+function generateReceiveQR() {
+  const amt = parseFloat(document.getElementById("receiveAmount").value) || 0;
+  let uri = `ethereum:${account.address}@56`;
+  if (amt > 0) {
+    const wei = web3.utils.toWei(amt.toString(), "ether");
+    uri += `/transfer?address=${account.address}&uint256=${wei}`;
+  }
+  document.getElementById("qrcode").innerHTML = "";
+  new QRCodeStyling({
+    width: 280, height: 280,
+    data: uri,
+    margin: 8,
+    qrOptions: { errorCorrectionLevel: "H" },
+    dotsOptions: { color: "#8b5cf6", type: "rounded" },
+    backgroundOptions: { color: "#ffffff" }
+  }).append(document.getElementById("qrcode"));
+}
+
+// ──────────────────────────────────────────────
+// Send Transaction
+// ──────────────────────────────────────────────
+async function sendUSDT() {
+  if (!account) return alert("No wallet loaded");
+  const to = document.getElementById("sendTo").value.trim();
+  const amtStr = document.getElementById("sendAmount").value;
+  const amt = parseFloat(amtStr);
+  if (!to || isNaN(amt) || amt <= 0) return alert("Invalid recipient or amount");
+
+  const statusEl = document.getElementById("sendStatus");
+  const msgEl = document.getElementById("sendMsg");
+  statusEl.style.display = "flex";
+  msgEl.textContent = "Preparing transaction...";
+
+  try {
+    const value = web3.utils.toWei(amt.toString(), "ether");
+    const data = usdt.methods.transfer(to, value).encodeABI();
+    const gas = await usdt.methods.transfer(to, value).estimateGas({from: account.address});
+    const gasPrice = await web3.eth.getGasPrice();
+
+    const tx = { from: account.address, to: USDT, gas, gasPrice, data };
+    const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
+    const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
+
+    msgEl.textContent = `✅ Success! Tx: ${receipt.transactionHash.slice(0,10)}...`;
+    statusEl.className = "status success";
+    checkBalance();
+  } catch(e) {
+    msgEl.textContent = "Failed: " + (e.message || e);
+    statusEl.className = "status waiting";
+  }
+}
+
+// ──────────────────────────────────────────────
+// QR Scanner – FULL + QUICK SCAN (NEW)
+// ──────────────────────────────────────────────
+let stream;
+const video = document.getElementById("video");
+const stopBtn = document.getElementById("stopBtn");
+
+async function startQRScanner() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = stream;
+    video.style.display = "block";
+    stopBtn.style.display = "block";
+    video.play();
+    requestAnimationFrame(scan);
+  } catch(e) {
+    alert("Cannot access camera: " + e.message);
+  }
+}
+
+// NEW: Quick scan directly from Send tab (fills address + amount)
+async function startQuickScan() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = stream;
+    video.style.display = "block";
+    video.play();
+    requestAnimationFrame(quickScan);
+  } catch(e) {
+    alert("Cannot access camera: " + e.message);
+  }
+}
+
+function stopQRScanner() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  video.style.display = "none";
+  stopBtn.style.display = "none";
+  document.getElementById("scanResult").textContent = "";
+}
+
+function scan() {
+  if (video.videoWidth === 0) return requestAnimationFrame(scan);
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  if (code) {
+    handleScanned(code.data, true); // full scan → switch tab
+    stopQRScanner();
+  } else {
+    requestAnimationFrame(scan);
+  }
+}
+
+function quickScan() {
+  if (video.videoWidth === 0) return requestAnimationFrame(quickScan);
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  if (code) {
+    handleScanned(code.data, false); // quick scan → stay in Send tab
+    stopQRScanner();
+  } else {
+    requestAnimationFrame(quickScan);
+  }
+}
+
+function handleScanned(data, switchToSend = true) {
+  console.log("Scanned QR:", data);
+
+  let address = null;
+  let amount = null;
+
+  if (data.match(/^0x[a-fA-F0-9]{40}$/)) {
+    address = data;
+  } else if (data.toLowerCase().startsWith("ethereum:")) {
+    try {
+      const uri = new URL(data.replace(/^ethereum:/i, "https://dummy/"));
+      address = uri.pathname.replace(/^\//, '').split('?')[0] || uri.searchParams.get('address');
+      let weiStr = uri.searchParams.get('value') || uri.searchParams.get('uint256');
+      if (weiStr) amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
+    } catch (e) {}
+  } else if (data.includes("/transfer?")) {
+    try {
+      const params = new URLSearchParams(data.split('/transfer?')[1]);
+      address = params.get('address');
+      const wei = params.get('uint256');
+      if (wei) amount = Number(web3.utils.fromWei(wei, "ether")).toFixed(6);
+    } catch (e) {}
+  } else if (data.includes("0x")) {
+    const match = data.match(/0x[a-fA-F0-9]{40}/i);
+    if (match) address = match[0];
+  }
+
+  if (address) {
+    document.getElementById("sendTo").value = address;
+    if (amount && amount > 0) document.getElementById("sendAmount").value = amount;
+
+    if (switchToSend) {
+      openTab("send");
+      alert("✅ Payment QR scanned!\nAddress + amount auto-filled.\nReady to send.");
+    } else {
+      // Quick scan feedback
+      const status = document.getElementById("sendStatus");
+      const msg = document.getElementById("sendMsg");
+      status.style.display = "flex";
+      status.className = "status success";
+      msg.textContent = "✅ Scanned! Ready to send";
+      setTimeout(() => { status.style.display = "none"; }, 2500);
+    }
+  } else {
+    alert("Could not read valid BSC address from QR.\n\nRaw data:\n" + data.substring(0, 120));
+  }
+}
+
+function openTab(name) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+  document.getElementById(name).classList.add("active");
+  document.querySelector(`[onclick="openTab('${name}')"]`).classList.add("active");
+}
+
+// ──────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────
+window.addEventListener("load", () => {
+  loadWallet();
+  if (!account) {
+    // Show setup screen
+  }
+});
+</script>
+</body>
+</html>
