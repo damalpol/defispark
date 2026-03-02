@@ -173,7 +173,7 @@
       font-weight: 600;
       min-width: 300px;
       border: 1px solid;
-      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 4.2s forwards;
       opacity: 0;
     }
     .toast.success { border-color: var(--success); color: var(--success); }
@@ -299,9 +299,9 @@ function toggleTheme() {
 }
 
 // ──────────────────────────────────────────────
-// UNIFIED TOAST SYSTEM (replaces all alerts)
+// UNIFIED TOAST SYSTEM (now with longer 4.5s delay)
 // ──────────────────────────────────────────────
-function showToast(message, type = "info", duration = 3000) {
+function showToast(message, type = "info", duration = 4500) {
   const container = document.getElementById("toastContainer");
   
   const toast = document.createElement("div");
@@ -316,7 +316,6 @@ function showToast(message, type = "info", duration = 3000) {
   toast.innerHTML = `${icon} ${message}`;
   container.appendChild(toast);
 
-  // Auto remove after animation
   setTimeout(() => {
     toast.style.animation = "toastOut 0.3s ease forwards";
     setTimeout(() => toast.remove(), 300);
@@ -419,7 +418,7 @@ function generateReceiveQR() {
 }
 
 // ──────────────────────────────────────────────
-// Send Transaction
+// Send Transaction + Auto-hide status box
 // ──────────────────────────────────────────────
 async function sendUSDT() {
   if (!account || !paymentRecipient || !hasScannedPayment) {
@@ -435,7 +434,7 @@ async function sendUSDT() {
   const statusEl = document.getElementById("sendStatus");
   const msgEl = document.getElementById("sendMsg");
   statusEl.style.display = "flex";
-  msgEl.textContent = "Processing...";
+  msgEl.textContent = "Processing transaction...";
 
   try {
     const value = web3.utils.toWei(amt.toString(), "ether");
@@ -449,13 +448,26 @@ async function sendUSDT() {
 
     statusEl.className = "status success";
     msgEl.textContent = "✅ Transaction sent!";
-    showToast("Transaction completed successfully!", "success");
+    showToast("Transaction completed successfully!", "success", 5000);
+
+    // Auto-hide status box after user can read it
+    setTimeout(() => {
+      statusEl.style.display = "none";
+      statusEl.className = "status waiting";
+      resetSendScreen();
+    }, 4200);
+
     checkBalance();
-    resetSendScreen();
+
   } catch(e) {
     msgEl.textContent = "Failed";
     statusEl.className = "status waiting";
-    showToast("Transaction failed: " + (e.message || e), "error");
+    showToast("Transaction failed: " + (e.message || e), "error", 5000);
+
+    // Auto-hide error box after delay
+    setTimeout(() => {
+      statusEl.style.display = "none";
+    }, 5200);
   }
 }
 
