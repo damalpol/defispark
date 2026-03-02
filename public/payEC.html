@@ -110,19 +110,23 @@
       background: var(--input-bg); border: 1px solid var(--border);
       border-radius: 16px; color: var(--text); outline: none;
     }
+    input[readonly] {
+      background: #1f2937;
+      color: #64748b;
+      cursor: default;
+    }
     input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
     button.main-btn {
       width: 100%; background: var(--primary); color: white; border: none;
       padding: 14px; border-radius: 16px; font-size: 15px; font-weight: 600;
-      cursor: pointer; margin: 8px 0 4px; transition: background 0.2s;
+      cursor: pointer; margin: 12px 0 4px; transition: background 0.2s;
     }
-    button.main-btn:hover { background: var(--primary-dark); }
-    button.scan-btn {
-      width: 100%; background: #64748b; color: white; border: none;
-      padding: 12px; border-radius: 16px; font-size: 14px; font-weight: 600;
-      cursor: pointer; margin: 8px 0; transition: background 0.2s;
+    button.main-btn:disabled {
+      background: #475569;
+      color: #64748b;
+      cursor: not-allowed;
     }
-    button.scan-btn:hover { background: #475569; }
+    button.main-btn:hover:not(:disabled) { background: var(--primary-dark); }
     #qrcode { margin: 20px auto; text-align:center; }
     #video { width: 100%; max-width: 320px; border-radius: 16px; margin: 16px auto; display: block; border: 2px solid var(--border); }
     .status {
@@ -134,8 +138,9 @@
     .success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
     .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .payment-hint {
+    .scan-hint {
       font-size: 13px; color: var(--text-secondary); text-align: center; margin: 8px 0 16px;
+      font-style: italic;
     }
     @media (max-width: 500px) {
       body { padding: 12px 12px 100px; }
@@ -150,7 +155,7 @@
 <div class="container">
   <header>
     <h1>DeFiSpark</h1>
-    <p class="subtitle">USDT on Binance Smart Chain • Simple P2P Payments</p>
+    <p class="subtitle">USDT on Binance Smart Chain • Scan to Pay</p>
   </header>
 
   <div class="warning">
@@ -188,11 +193,11 @@
       <button class="tab-btn" onclick="openTab('scan')">📷 Scan to Pay</button>
     </div>
 
-    <!-- Request Payment Tab (Receive) -->
+    <!-- Request Payment Tab -->
     <div id="receive" class="tab-content active">
-      <div class="payment-hint">
-        Fill amount → Generate QR<br>
-        <strong>Others scan this QR to pay you instantly</strong>
+      <div class="scan-hint">
+        Enter amount → Generate QR<br>
+        <strong>Others scan this QR to pay you</strong>
       </div>
       <div class="input-group">
         <label>Request Amount (USDT)</label>
@@ -202,18 +207,21 @@
       <div id="qrcode"></div>
     </div>
 
-    <!-- Send Tab (with direct QR scanner) -->
+    <!-- Send Tab – READ-ONLY + QR ONLY -->
     <div id="send" class="tab-content">
+      <div class="scan-hint">
+        Scan a payment QR first<br>
+        Fields will auto-fill and lock
+      </div>
       <div class="input-group">
-        <label>Send to Address</label>
-        <input type="text" id="sendTo" placeholder="0x...">
-        <button onclick="startQuickScan()" class="scan-btn">📷 Scan QR Code for Recipient</button>
+        <label>Recipient Address</label>
+        <input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)">
       </div>
       <div class="input-group">
         <label>Amount (USDT)</label>
-        <input type="number" id="sendAmount" placeholder="e.g. 10" step="0.01" min="0.01">
+        <input type="number" id="sendAmount" readonly placeholder="0.00 (scan QR to fill)">
       </div>
-      <button class="main-btn" onclick="sendUSDT()">Send USDT Now</button>
+      <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDT Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;">
         <div class="spinner"></div>
         <span id="sendMsg">Processing transaction...</span>
@@ -222,9 +230,9 @@
 
     <!-- Scan to Pay Tab -->
     <div id="scan" class="tab-content">
-      <div class="payment-hint">
+      <div class="scan-hint">
         Point camera at any payment QR<br>
-        (yours or someone else's)
+        (Request QR from someone)
       </div>
       <button class="main-btn" onclick="startQRScanner()">Start Camera Scanner</button>
       <video id="video" playsinline autoplay muted style="display:none;"></video>
@@ -258,6 +266,13 @@ const usdt = new web3.eth.Contract([
 ], USDT);
 
 let account = null;
+let paymentRecipient = "";   // full address (hidden)
+let hasScannedPayment = false;
+
+function shortenAddress(addr) {
+  if (!addr) return "";
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
 
 function generateNewWallet() {
   account = web3.eth.accounts.create();
@@ -329,14 +344,14 @@ function generateReceiveQR() {
 }
 
 // ──────────────────────────────────────────────
-// Send Transaction
+// Send Transaction (uses scanned data only)
 // ──────────────────────────────────────────────
 async function sendUSDT() {
-  if (!account) return alert("No wallet loaded");
-  const to = document.getElementById("sendTo").value.trim();
+  if (!account || !paymentRecipient || !hasScannedPayment) return alert("Please scan a valid payment QR first");
+
   const amtStr = document.getElementById("sendAmount").value;
   const amt = parseFloat(amtStr);
-  if (!to || isNaN(amt) || amt <= 0) return alert("Invalid recipient or amount");
+  if (isNaN(amt) || amt <= 0) return alert("Invalid amount");
 
   const statusEl = document.getElementById("sendStatus");
   const msgEl = document.getElementById("sendMsg");
@@ -345,8 +360,8 @@ async function sendUSDT() {
 
   try {
     const value = web3.utils.toWei(amt.toString(), "ether");
-    const data = usdt.methods.transfer(to, value).encodeABI();
-    const gas = await usdt.methods.transfer(to, value).estimateGas({from: account.address});
+    const data = usdt.methods.transfer(paymentRecipient, value).encodeABI();
+    const gas = await usdt.methods.transfer(paymentRecipient, value).estimateGas({from: account.address});
     const gasPrice = await web3.eth.getGasPrice();
 
     const tx = { from: account.address, to: USDT, gas, gasPrice, data };
@@ -356,6 +371,7 @@ async function sendUSDT() {
     msgEl.textContent = `✅ Success! Tx: ${receipt.transactionHash.slice(0,10)}...`;
     statusEl.className = "status success";
     checkBalance();
+    resetSendScreen(); // ready for next scan
   } catch(e) {
     msgEl.textContent = "Failed: " + (e.message || e);
     statusEl.className = "status waiting";
@@ -363,7 +379,7 @@ async function sendUSDT() {
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner – FULL + QUICK SCAN (NEW)
+// QR Scanner (only in Scan tab)
 // ──────────────────────────────────────────────
 let stream;
 const video = document.getElementById("video");
@@ -377,19 +393,6 @@ async function startQRScanner() {
     stopBtn.style.display = "block";
     video.play();
     requestAnimationFrame(scan);
-  } catch(e) {
-    alert("Cannot access camera: " + e.message);
-  }
-}
-
-// NEW: Quick scan directly from Send tab (fills address + amount)
-async function startQuickScan() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    video.srcObject = stream;
-    video.style.display = "block";
-    video.play();
-    requestAnimationFrame(quickScan);
   } catch(e) {
     alert("Cannot access camera: " + e.message);
   }
@@ -410,29 +413,14 @@ function scan() {
   canvas.getContext("2d").drawImage(video, 0, 0);
   const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
   if (code) {
-    handleScanned(code.data, true); // full scan → switch tab
+    handleScanned(code.data);
     stopQRScanner();
   } else {
     requestAnimationFrame(scan);
   }
 }
 
-function quickScan() {
-  if (video.videoWidth === 0) return requestAnimationFrame(quickScan);
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video, 0, 0);
-  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-  if (code) {
-    handleScanned(code.data, false); // quick scan → stay in Send tab
-    stopQRScanner();
-  } else {
-    requestAnimationFrame(quickScan);
-  }
-}
-
-function handleScanned(data, switchToSend = true) {
+function handleScanned(data) {
   console.log("Scanned QR:", data);
 
   let address = null;
@@ -460,24 +448,31 @@ function handleScanned(data, switchToSend = true) {
   }
 
   if (address) {
-    document.getElementById("sendTo").value = address;
-    if (amount && amount > 0) document.getElementById("sendAmount").value = amount;
+    paymentRecipient = address;           // store full address
+    hasScannedPayment = true;
 
-    if (switchToSend) {
-      openTab("send");
-      alert("✅ Payment QR scanned!\nAddress + amount auto-filled.\nReady to send.");
-    } else {
-      // Quick scan feedback
-      const status = document.getElementById("sendStatus");
-      const msg = document.getElementById("sendMsg");
-      status.style.display = "flex";
-      status.className = "status success";
-      msg.textContent = "✅ Scanned! Ready to send";
-      setTimeout(() => { status.style.display = "none"; }, 2500);
+    // Fill readonly fields (shortened address)
+    document.getElementById("sendTo").value = shortenAddress(address);
+    if (amount && amount > 0) {
+      document.getElementById("sendAmount").value = amount;
     }
+
+    // Enable Send button
+    document.getElementById("sendButton").disabled = false;
+
+    openTab("send");
+    alert("✅ Payment QR scanned!\nFields locked & ready to send.");
   } else {
     alert("Could not read valid BSC address from QR.\n\nRaw data:\n" + data.substring(0, 120));
   }
+}
+
+function resetSendScreen() {
+  hasScannedPayment = false;
+  paymentRecipient = "";
+  document.getElementById("sendTo").value = "";
+  document.getElementById("sendAmount").value = "";
+  document.getElementById("sendButton").disabled = true;
 }
 
 function openTab(name) {
@@ -485,6 +480,11 @@ function openTab(name) {
   document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
   document.getElementById(name).classList.add("active");
   document.querySelector(`[onclick="openTab('${name}')"]`).classList.add("active");
+
+  // Reset Send screen when switching away and back without scan
+  if (name === "send" && !hasScannedPayment) {
+    resetSendScreen();
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -494,6 +494,9 @@ window.addEventListener("load", () => {
   loadWallet();
   if (!account) {
     // Show setup screen
+  } else {
+    // Make sure Send button starts disabled
+    document.getElementById("sendButton").disabled = true;
   }
 });
 </script>
