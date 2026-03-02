@@ -207,7 +207,7 @@
       <div id="qrcode"></div>
     </div>
 
-    <!-- Send Tab – READ-ONLY + QR ONLY -->
+    <!-- Send Tab – READ-ONLY -->
     <div id="send" class="tab-content">
       <div class="scan-hint">
         Scan a payment QR first<br>
@@ -231,8 +231,7 @@
     <!-- Scan to Pay Tab -->
     <div id="scan" class="tab-content">
       <div class="scan-hint">
-        Point camera at any payment QR<br>
-        (Request QR from someone)
+        Point camera at any payment QR
       </div>
       <button class="main-btn" onclick="startQRScanner()">Start Camera Scanner</button>
       <video id="video" playsinline autoplay muted style="display:none;"></video>
@@ -258,6 +257,7 @@ function toggleTheme() {
 // Wallet Core
 // ──────────────────────────────────────────────
 const USDT = "0x55d398326f99059ff775485246999027b3197955";
+const CHAIN_ID = "56";
 const BSC_RPC = "https://bsc-dataseed.binance.org/";
 const web3 = new Web3(BSC_RPC);
 const usdt = new web3.eth.Contract([
@@ -266,11 +266,11 @@ const usdt = new web3.eth.Contract([
 ], USDT);
 
 let account = null;
-let paymentRecipient = "";   // full address (hidden)
+let paymentRecipient = "";
 let hasScannedPayment = false;
 
 function shortenAddress(addr) {
-  if (!addr) return "";
+  if (!addr || addr.length < 42) return addr || "";
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
@@ -291,10 +291,7 @@ function importWallet() {
 }
 
 function saveWallet() {
-  if (account) {
-    localStorage.setItem("defispark_wallet_pk", account.privateKey);
-    document.getElementById("privateKey").value = account.privateKey;
-  }
+  if (account) localStorage.setItem("defispark_wallet_pk", account.privateKey);
 }
 
 function loadWallet() {
@@ -314,7 +311,7 @@ function showWallet() {
 
 function copyAddress() {
   navigator.clipboard.writeText(account.address);
-  alert("✅ Address copied to clipboard!");
+  alert("✅ Address copied!");
 }
 
 async function checkBalance() {
@@ -322,15 +319,15 @@ async function checkBalance() {
   try {
     const bal = await usdt.methods.balanceOf(account.address).call();
     document.getElementById("balance").textContent = Number(web3.utils.fromWei(bal, "ether")).toFixed(4);
-  } catch(e) { console.error(e); }
+  } catch(e) {}
 }
 
 function generateReceiveQR() {
   const amt = parseFloat(document.getElementById("receiveAmount").value) || 0;
-  let uri = `ethereum:${account.address}@56`;
+  let uri = `ethereum:${USDT}@${CHAIN_ID}/transfer?address=${account.address}`;
   if (amt > 0) {
     const wei = web3.utils.toWei(amt.toString(), "ether");
-    uri += `/transfer?address=${account.address}&uint256=${wei}`;
+    uri += `&uint256=${wei}`;
   }
   document.getElementById("qrcode").innerHTML = "";
   new QRCodeStyling({
@@ -344,13 +341,11 @@ function generateReceiveQR() {
 }
 
 // ──────────────────────────────────────────────
-// Send Transaction (uses scanned data only)
+// Send Transaction
 // ──────────────────────────────────────────────
 async function sendUSDT() {
   if (!account || !paymentRecipient || !hasScannedPayment) return alert("Please scan a valid payment QR first");
-
-  const amtStr = document.getElementById("sendAmount").value;
-  const amt = parseFloat(amtStr);
+  const amt = parseFloat(document.getElementById("sendAmount").value);
   if (isNaN(amt) || amt <= 0) return alert("Invalid amount");
 
   const statusEl = document.getElementById("sendStatus");
@@ -366,12 +361,12 @@ async function sendUSDT() {
 
     const tx = { from: account.address, to: USDT, gas, gasPrice, data };
     const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
-    const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
+    await web3.eth.sendSignedTransaction(signed.rawTransaction);
 
-    msgEl.textContent = `✅ Success! Tx: ${receipt.transactionHash.slice(0,10)}...`;
+    msgEl.textContent = `✅ Success!`;
     statusEl.className = "status success";
     checkBalance();
-    resetSendScreen(); // ready for next scan
+    resetSendScreen();
   } catch(e) {
     msgEl.textContent = "Failed: " + (e.message || e);
     statusEl.className = "status waiting";
@@ -379,7 +374,7 @@ async function sendUSDT() {
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner (only in Scan tab)
+// QR Scanner & Parsing (FIXED)
 // ──────────────────────────────────────────────
 let stream;
 const video = document.getElementById("video");
@@ -421,49 +416,36 @@ function scan() {
 }
 
 function handleScanned(data) {
-  console.log("Scanned QR:", data);
-
   let address = null;
   let amount = null;
 
-  if (data.match(/^0x[a-fA-F0-9]{40}$/)) {
-    address = data;
-  } else if (data.toLowerCase().startsWith("ethereum:")) {
-    try {
-      const uri = new URL(data.replace(/^ethereum:/i, "https://dummy/"));
-      address = uri.pathname.replace(/^\//, '').split('?')[0] || uri.searchParams.get('address');
-      let weiStr = uri.searchParams.get('value') || uri.searchParams.get('uint256');
-      if (weiStr) amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
-    } catch (e) {}
-  } else if (data.includes("/transfer?")) {
-    try {
-      const params = new URLSearchParams(data.split('/transfer?')[1]);
-      address = params.get('address');
-      const wei = params.get('uint256');
-      if (wei) amount = Number(web3.utils.fromWei(wei, "ether")).toFixed(6);
-    } catch (e) {}
-  } else if (data.includes("0x")) {
+  // 1. Try query parameter (most reliable for our new QR format)
+  try {
+    const url = new URL(data.startsWith("ethereum:") ? data.replace(/^ethereum:/i, "https://dummy/") : "https://dummy/?" + data);
+    address = url.searchParams.get("address");
+    const weiStr = url.searchParams.get("uint256") || url.searchParams.get("value");
+    if (weiStr) amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
+  } catch(e) {}
+
+  // 2. Fallback: plain address or extract any 0x address
+  if (!address && data.match(/^0x[a-fA-F0-9]{40}$/)) address = data;
+  else if (!address && data.includes("0x")) {
     const match = data.match(/0x[a-fA-F0-9]{40}/i);
     if (match) address = match[0];
   }
 
   if (address) {
-    paymentRecipient = address;           // store full address
+    paymentRecipient = address;
     hasScannedPayment = true;
 
-    // Fill readonly fields (shortened address)
     document.getElementById("sendTo").value = shortenAddress(address);
-    if (amount && amount > 0) {
-      document.getElementById("sendAmount").value = amount;
-    }
+    if (amount && amount > 0) document.getElementById("sendAmount").value = amount;
 
-    // Enable Send button
     document.getElementById("sendButton").disabled = false;
-
     openTab("send");
-    alert("✅ Payment QR scanned!\nFields locked & ready to send.");
+    alert("✅ Payment QR scanned!\nAddress & amount locked and ready.");
   } else {
-    alert("Could not read valid BSC address from QR.\n\nRaw data:\n" + data.substring(0, 120));
+    alert("Could not extract valid address from QR.\n\nRaw data:\n" + data.substring(0, 120));
   }
 }
 
@@ -480,11 +462,6 @@ function openTab(name) {
   document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
   document.getElementById(name).classList.add("active");
   document.querySelector(`[onclick="openTab('${name}')"]`).classList.add("active");
-
-  // Reset Send screen when switching away and back without scan
-  if (name === "send" && !hasScannedPayment) {
-    resetSendScreen();
-  }
 }
 
 // ──────────────────────────────────────────────
@@ -495,7 +472,6 @@ window.addEventListener("load", () => {
   if (!account) {
     // Show setup screen
   } else {
-    // Make sure Send button starts disabled
     document.getElementById("sendButton").disabled = true;
   }
 });
