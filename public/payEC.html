@@ -18,6 +18,8 @@
       --primary-dark: #7c3aed;
       --success: #10b981;
       --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
       --input-bg: #334155;
       --border: #475569;
     }
@@ -49,6 +51,7 @@
       border-radius: 24px;
       padding: 18px 14px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      position: relative;
     }
     header { text-align: center; margin-bottom: 14px; }
     h1 {
@@ -142,9 +145,48 @@
       font-size: 13px; color: var(--text-secondary); text-align: center; margin: 8px 0 16px;
       font-style: italic;
     }
+
+    /* ────── UNIFIED TOAST MESSAGES ────── */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      max-width: 380px;
+      width: calc(100% - 32px);
+    }
+    .toast {
+      background: var(--card);
+      color: var(--text);
+      padding: 14px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 300px;
+      border: 1px solid;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      opacity: 0;
+    }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--danger); color: var(--danger); }
+    .toast.info    { border-color: var(--info); color: var(--info); }
+    .toast.warning { border-color: var(--warning); color: var(--warning); }
+    @keyframes toastIn  { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes toastOut { to { transform: translate(-50%, -20px); opacity: 0; } }
+
     @media (max-width: 500px) {
       body { padding: 12px 12px 100px; }
       .container { padding: 18px 14px; border-radius: 20px; }
+      .toast { min-width: 90vw; }
     }
   </style>
 </head>
@@ -241,6 +283,9 @@
   </div>
 </div>
 
+<!-- ────── UNIFIED TOAST CONTAINER ────── -->
+<div id="toastContainer"></div>
+
 <script>
 // ──────────────────────────────────────────────
 // Theme Toggle
@@ -251,6 +296,31 @@ function toggleTheme() {
   html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
   const toggleBtn = document.querySelector(".theme-toggle");
   toggleBtn.textContent = current === "dark" ? "☀️" : "🌙";
+}
+
+// ──────────────────────────────────────────────
+// UNIFIED TOAST SYSTEM (replaces all alerts)
+// ──────────────────────────────────────────────
+function showToast(message, type = "info", duration = 3000) {
+  const container = document.getElementById("toastContainer");
+  
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  
+  let icon = "";
+  if (type === "success") icon = "✅";
+  else if (type === "error") icon = "❌";
+  else if (type === "warning") icon = "⚠️";
+  else icon = "ℹ️";
+  
+  toast.innerHTML = `${icon} ${message}`;
+  container.appendChild(toast);
+
+  // Auto remove after animation
+  setTimeout(() => {
+    toast.style.animation = "toastOut 0.3s ease forwards";
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 // ──────────────────────────────────────────────
@@ -278,16 +348,23 @@ function generateNewWallet() {
   account = web3.eth.accounts.create();
   saveWallet();
   showWallet();
+  showToast("New wallet created successfully", "success");
 }
 
 function importWallet() {
   const pk = document.getElementById("privateKey").value.trim();
-  if (!pk.startsWith("0x") || pk.length !== 66) return alert("Invalid private key format");
+  if (!pk.startsWith("0x") || pk.length !== 66) {
+    showToast("Invalid private key format (must start with 0x and be 66 chars)", "error");
+    return;
+  }
   try {
     account = web3.eth.accounts.privateKeyToAccount(pk);
     saveWallet();
     showWallet();
-  } catch(e) { alert("Invalid private key"); }
+    showToast("Wallet imported successfully", "success");
+  } catch(e) {
+    showToast("Invalid private key", "error");
+  }
 }
 
 function saveWallet() {
@@ -311,7 +388,7 @@ function showWallet() {
 
 function copyAddress() {
   navigator.clipboard.writeText(account.address);
-  alert("✅ Address copied!");
+  showToast("✅ Address copied to clipboard!", "success");
 }
 
 async function checkBalance() {
@@ -338,20 +415,27 @@ function generateReceiveQR() {
     dotsOptions: { color: "#8b5cf6", type: "rounded" },
     backgroundOptions: { color: "#ffffff" }
   }).append(document.getElementById("qrcode"));
+  showToast("Payment QR generated – share it!", "info");
 }
 
 // ──────────────────────────────────────────────
 // Send Transaction
 // ──────────────────────────────────────────────
 async function sendUSDT() {
-  if (!account || !paymentRecipient || !hasScannedPayment) return alert("Please scan a valid payment QR first");
+  if (!account || !paymentRecipient || !hasScannedPayment) {
+    showToast("Please scan a valid payment QR first", "error");
+    return;
+  }
   const amt = parseFloat(document.getElementById("sendAmount").value);
-  if (isNaN(amt) || amt <= 0) return alert("Invalid amount");
+  if (isNaN(amt) || amt <= 0) {
+    showToast("Invalid amount", "error");
+    return;
+  }
 
   const statusEl = document.getElementById("sendStatus");
   const msgEl = document.getElementById("sendMsg");
   statusEl.style.display = "flex";
-  msgEl.textContent = "Preparing transaction...";
+  msgEl.textContent = "Processing...";
 
   try {
     const value = web3.utils.toWei(amt.toString(), "ether");
@@ -363,18 +447,20 @@ async function sendUSDT() {
     const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
     await web3.eth.sendSignedTransaction(signed.rawTransaction);
 
-    msgEl.textContent = `✅ Success!`;
     statusEl.className = "status success";
+    msgEl.textContent = "✅ Transaction sent!";
+    showToast("Transaction completed successfully!", "success");
     checkBalance();
     resetSendScreen();
   } catch(e) {
-    msgEl.textContent = "Failed: " + (e.message || e);
+    msgEl.textContent = "Failed";
     statusEl.className = "status waiting";
+    showToast("Transaction failed: " + (e.message || e), "error");
   }
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner & Parsing (FIXED)
+// QR Scanner & Parsing
 // ──────────────────────────────────────────────
 let stream;
 const video = document.getElementById("video");
@@ -389,7 +475,7 @@ async function startQRScanner() {
     video.play();
     requestAnimationFrame(scan);
   } catch(e) {
-    alert("Cannot access camera: " + e.message);
+    showToast("Cannot access camera: " + e.message, "error");
   }
 }
 
@@ -419,7 +505,6 @@ function handleScanned(data) {
   let address = null;
   let amount = null;
 
-  // 1. Try query parameter (most reliable for our new QR format)
   try {
     const url = new URL(data.startsWith("ethereum:") ? data.replace(/^ethereum:/i, "https://dummy/") : "https://dummy/?" + data);
     address = url.searchParams.get("address");
@@ -427,7 +512,6 @@ function handleScanned(data) {
     if (weiStr) amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
   } catch(e) {}
 
-  // 2. Fallback: plain address or extract any 0x address
   if (!address && data.match(/^0x[a-fA-F0-9]{40}$/)) address = data;
   else if (!address && data.includes("0x")) {
     const match = data.match(/0x[a-fA-F0-9]{40}/i);
@@ -443,9 +527,9 @@ function handleScanned(data) {
 
     document.getElementById("sendButton").disabled = false;
     openTab("send");
-    alert("✅ Payment QR scanned!\nAddress & amount locked and ready.");
+    showToast("✅ Payment QR scanned! Ready to send.", "success");
   } else {
-    alert("Could not extract valid address from QR.\n\nRaw data:\n" + data.substring(0, 120));
+    showToast("Could not extract valid address from QR", "error");
   }
 }
 
@@ -473,6 +557,7 @@ window.addEventListener("load", () => {
     // Show setup screen
   } else {
     document.getElementById("sendButton").disabled = true;
+    showToast("Wallet loaded successfully", "info");
   }
 });
 </script>
