@@ -3,290 +3,238 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>DeFiSpark • USDT (BSC)</title>
+  <title>Wallet • BSC</title>
   <script src="https://unpkg.com/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
   <script src="https://unpkg.com/jsqr@1.4.0/dist/jsqr.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.3/dist/web3.min.js"></script>
   <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --primary: #8b5cf6;
-      --primary-dark: #7c3aed;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --info: #3b82f6;
-      --input-bg: #334155;
-      --border: #475569;
-    }
-    [data-theme="light"] {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --text-secondary: #64748b;
-      --primary: #7c3aed;
-      --primary-dark: #6d28d9;
-      --input-bg: #f1f5f9;
-      --border: #e2e8f0;
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 16px 16px 100px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .container {
-      width: 100%;
-      max-width: 420px;
-      background: var(--card);
-      border-radius: 24px;
-      padding: 18px 14px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      position: relative;
-    }
-    header { text-align: center; margin-bottom: 14px; }
-    h1 {
-      font-size: 26px;
-      font-weight: 700;
-      background: linear-gradient(90deg, var(--primary), #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .subtitle { color: var(--text-secondary); font-size: 14px; }
-    .theme-toggle {
-      position: absolute; top: 16px; right: 16px;
-      background: none; border: none; font-size: 20px; cursor: pointer;
-      color: var(--text-secondary);
-    }
-    .warning {
-      background: rgba(239,68,68,0.15); color: #fca5a5;
-      padding: 10px 14px; border-radius: 16px; font-size: 13px;
-      margin: 12px 0; border: 1px solid rgba(239,68,68,0.3);
-    }
-    .balance-card {
-      background: linear-gradient(135deg, #2d3748, #1e293b);
-      border-radius: 20px; padding: 18px 16px; text-align: center;
-      margin: 16px 0; border: 1px solid var(--border);
-    }
-    .balance-card h2 { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
-    .balance-card small { color: var(--text-secondary); font-size: 14px; }
-    .address-display {
-      background: var(--input-bg); padding: 14px; border-radius: 16px;
-      font-family: monospace; font-size: 15px; word-break: break-all;
-      position: relative; margin: 12px 0; border: 1px solid var(--border);
-    }
-    .copy-btn {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-      background: var(--primary); color: white; border: none;
-      padding: 6px 12px; border-radius: 12px; cursor: pointer;
-      font-size: 12px; font-weight: 600;
-    }
-    .tab-bar {
-      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
-      background: var(--card); border-radius: 24px; padding: 8px;
-      display: flex; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      border: 1px solid var(--border); width: calc(100% - 32px); max-width: 420px;
-      z-index: 100;
-    }
-    .tab-btn {
-      flex: 1; background: transparent; border: none;
-      color: var(--text-secondary); font-size: 13px; font-weight: 600;
-      padding: 10px 8px; border-radius: 16px; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .tab-btn.active { background: rgba(139,92,246,0.15); color: var(--primary); }
-    .tab-content { display: none; padding: 8px 0 20px; }
-    .tab-content.active { display: block; }
-    .input-group { margin: 10px 0; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-secondary); font-size: 13px; }
-    input {
-      width: 100%; padding: 12px 16px; font-size: 16px;
-      background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 16px; color: var(--text); outline: none;
-    }
-    input[readonly] {
-      background: #1f2937;
-      color: #64748b;
-      cursor: default;
-    }
-    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
-    button.main-btn {
-      width: 100%; background: var(--primary); color: white; border: none;
-      padding: 14px; border-radius: 16px; font-size: 15px; font-weight: 600;
-      cursor: pointer; margin: 12px 0 4px; transition: background 0.2s;
-    }
-    button.main-btn:disabled {
-      background: #475569;
-      color: #64748b;
-      cursor: not-allowed;
-    }
-    button.main-btn:hover:not(:disabled) { background: var(--primary-dark); }
-    #qrcode { margin: 20px auto; text-align:center; }
-    #video { width: 100%; max-width: 320px; border-radius: 16px; margin: 16px auto; display: block; border: 2px solid var(--border); }
-    .status {
-      padding: 12px; border-radius: 16px; font-weight: 600;
-      margin: 8px 0; text-align: center; min-height: 50px;
-      display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px;
-    }
-    .waiting { background: rgba(249,115,22,0.15); color: #fb923c; }
-    .success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
-    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .scan-hint {
-      font-size: 13px; color: var(--text-secondary); text-align: center; margin: 8px 0 16px;
-      font-style: italic;
-    }
-
-    /* ────── UNIFIED TOAST MESSAGES ────── */
-    #toastContainer {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: center;
-      max-width: 380px;
-      width: calc(100% - 32px);
-    }
-    .toast {
-      background: var(--card);
-      color: var(--text);
-      padding: 14px 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      min-width: 300px;
-      border: 1px solid;
-      animation: toastIn 0.3s ease, toastOut 0.3s ease 4.2s forwards;
-      opacity: 0;
-    }
-    .toast.success { border-color: var(--success); color: var(--success); }
-    .toast.error   { border-color: var(--danger); color: var(--danger); }
-    .toast.info    { border-color: var(--info); color: var(--info); }
-    .toast.warning { border-color: var(--warning); color: var(--warning); }
-    @keyframes toastIn  { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-    @keyframes toastOut { to { transform: translate(-50%, -20px); opacity: 0; } }
-
-    @media (max-width: 500px) {
-      body { padding: 12px 12px 100px; }
-      .container { padding: 18px 14px; border-radius: 20px; }
-      .toast { min-width: 90vw; }
-    }
+    :root {--bg:#0f172a;--card:#1e293b;--text:#f1f5f9;--text-secondary:#94a3b8;--primary:#8b5cf6;--primary-dark:#7c3aed;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--info:#3b82f6;--input-bg:#334155;--border:#475569;}
+    [data-theme="light"] {--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--text-secondary:#64748b;--primary:#7c3aed;--primary-dark:#6d28d9;--input-bg:#f1f5f9;--border:#e2e8f0;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:16px 16px 100px;display:flex;flex-direction:column;align-items:center;}
+    .container{width:100%;max-width:420px;background:var(--card);border-radius:24px;padding:18px 14px;box-shadow:0 20px 40px rgba(0,0,0,0.3);position:relative;}
+    header{text-align:center;margin-bottom:14px;}
+    .header-row{display:flex;justify-content:space-between;align-items:center;position:relative;width:100%;}
+    .lang-group{display:flex;gap:6px;}
+    .lang-toggle{font-size:13px;font-weight:700;padding:5px 9px;border-radius:8px;background:none;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;}
+    .lang-toggle.active{background:rgba(139,92,246,0.25);color:var(--primary);border-color:var(--primary);}
+    .theme-toggle{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);}
+    h1{font-size:26px;font-weight:700;background:linear-gradient(90deg,var(--primary),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .subtitle{color:var(--text-secondary);font-size:14px;}
+    .warning{background:rgba(239,68,68,0.15);color:#fca5a5;padding:10px 14px;border-radius:16px;font-size:13px;margin:12px 0;border:1px solid rgba(239,68,68,0.3);}
+    .balance-card{background:linear-gradient(135deg,#2d3748,#1e293b);border-radius:20px;padding:18px 16px;text-align:center;margin:16px 0;border:1px solid var(--border);}
+    .balance-card h2{font-size:32px;font-weight:700;margin-bottom:4px;}
+    .balance-card small{color:var(--text-secondary);font-size:14px;display:block;margin-top:6px;}
+    .tab-bar{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:24px;padding:8px;display:flex;box-shadow:0 10px 30px rgba(0,0,0,0.4);border:1px solid var(--border);width:calc(100%-32px);max-width:420px;z-index:100;}
+    .tab-btn{flex:1;background:transparent;border:none;color:var(--text-secondary);font-size:13px;font-weight:600;padding:10px 8px;border-radius:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;}
+    .tab-btn.active{background:rgba(139,92,246,0.15);color:var(--primary);}
+    .tab-content{display:none;padding:8px 0 20px;}
+    .tab-content.active{display:block;}
+    .input-group{margin:10px 0;}
+    label{display:block;margin-bottom:6px;font-weight:600;color:var(--text-secondary);font-size:13px;}
+    input{width:100%;padding:12px 16px;font-size:16px;background:var(--input-bg);border:1px solid var(--border);border-radius:16px;color:var(--text);outline:none;}
+    input[readonly]{background:#1f2937;color:#64748b;cursor:default;}
+    input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(139,92,246,0.2);}
+    button.main-btn{width:100%;background:var(--primary);color:white;border:none;padding:14px;border-radius:16px;font-size:15px;font-weight:600;cursor:pointer;margin:12px 0 4px;transition:background .2s;}
+    button.main-btn:disabled{background:#475569;color:#64748b;cursor:not-allowed;}
+    button.main-btn:hover:not(:disabled){background:var(--primary-dark);}
+    #qrcode{margin:20px auto;text-align:center;}
+    #video{width:100%;max-width:320px;border-radius:16px;margin:16px auto;display:block;border:2px solid var(--border);}
+    .status{padding:12px;border-radius:16px;font-weight:600;margin:8px 0;text-align:center;min-height:50px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;}
+    .waiting{background:rgba(249,115,22,0.15);color:#fb923c;}
+    .success{background:rgba(16,185,129,0.15);color:var(--success);border:1px solid rgba(16,185,129,0.3);}
+    .spinner{width:20px;height:20px;border:3px solid rgba(255,255,255,0.1);border-top:3px solid var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .scan-section{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;}
+    .scan-text{flex:1;font-size:13px;color:var(--text-secondary);line-height:1.4;}
+    .scan-text strong{display:block;color:var(--text);font-weight:600;margin-top:3px;}
+    .scan-btn{flex:0 0 155px;padding:14px 12px;font-size:14px;white-space:nowrap;}
+    .fee-notice{background:rgba(139,92,246,0.15);color:#c4b5fd;padding:10px;border-radius:12px;font-size:13px;margin:8px 0;text-align:center;}
+    #toastContainer{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:380px;width:calc(100%-32px);}
+    .toast{background:var(--card);color:var(--text);padding:14px 20px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;min-width:300px;border:1px solid;animation:toastIn .3s ease,toastOut .3s ease 4.2s forwards;opacity:0;}
+    .toast.success{border-color:var(--success);color:var(--success);}
+    .toast.error{border-color:var(--danger);color:var(--danger);}
+    .toast.info{border-color:var(--info);color:var(--info);}
+    .toast.warning{border-color:var(--warning);color:var(--warning);}
+    @keyframes toastIn{from{transform:translate(-50%,-20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+    @keyframes toastOut{to{transform:translate(-50%,-20px);opacity:0;}}
+    @media (max-width:500px){.body{padding:12px 12px 100px;}.container{padding:18px 14px;border-radius:20px;}.toast{min-width:90vw;}.scan-section{flex-wrap:wrap;}.scan-btn{flex:1;}}
   </style>
 </head>
 <body>
 
-<button class="theme-toggle" onclick="toggleTheme()">🌙</button>
-
 <div class="container">
   <header>
-    <h1>DeFiSpark</h1>
-    <p class="subtitle">USDT on Binance Smart Chain • Scan to Pay</p>
+    <div class="header-row">
+      <div class="lang-group">
+        <button class="lang-toggle" id="langEn" onclick="setLanguage('en')">EN</button>
+        <button class="lang-toggle" id="langEs" onclick="setLanguage('es')">ES</button>
+      </div>
+      <h1 id="walletTitle">Wallet</h1>
+      <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </div>
+    <p id="subtitle" class="subtitle">USDT & BNB on Binance Smart Chain • Scan to Pay</p>
   </header>
 
-  <div class="warning">
-    ⚠️ Demo / Educational wallet only<br>
-    Keys stored in browser • Use tiny amounts • Save private key!
-  </div>
+  <div id="warning" class="warning">⚠️ Demo / Educational wallet only<br>Keys stored in browser • Use tiny amounts • Save private key!</div>
 
   <!-- Wallet Setup -->
   <div id="walletSetup">
     <div class="input-group">
-      <label>Private Key (hex) or Generate New</label>
+      <label id="pkLabel">Private Key (hex) or Generate New</label>
       <input type="text" id="privateKey" placeholder="0x... (66 chars)">
     </div>
-    <button class="main-btn" onclick="generateNewWallet()">Create New Wallet</button>
-    <button class="main-btn" onclick="importWallet()" style="background:#4b5563;">Import Existing Wallet</button>
+    <button class="main-btn" id="createBtn" onclick="generateNewWallet()">Create New Wallet</button>
+    <button class="main-btn" id="importBtn" onclick="importWallet()" style="background:#4b5563;">Import Existing Wallet</button>
   </div>
 
   <!-- Main Dashboard -->
   <div id="walletDashboard" style="display:none;">
     <div class="balance-card">
-      <h2><span id="balance">0.00</span> USDT</h2>
-      <small>Balance • BSC Network</small>
-      <button onclick="checkBalance()" style="margin-top:10px; background:transparent; border:1px solid var(--border); color:var(--text-secondary); padding:6px 14px; border-radius:12px; font-size:12px;">Refresh</button>
+      <h2><span id="usdtBalance">0.00</span> USDT</h2>
+      <small id="bnbBalance">0.0000 BNB • BSC Network</small>
+      <button onclick="refreshBalances()" id="refreshBtn" style="margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:12px;font-size:12px;">Refresh</button>
     </div>
 
-    <div class="address-display">
-      <span id="userAddress">—</span>
-      <button class="copy-btn" onclick="copyAddress()">Copy</button>
-    </div>
-
-    <!-- Bottom Navigation -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="openTab('receive')">💰 Request</button>
-      <button class="tab-btn" onclick="openTab('send')">↑ Send</button>
-      <button class="tab-btn" onclick="openTab('scan')">📷 Scan to Pay</button>
+      <button class="tab-btn" onclick="openTab('send')" id="tabSend">↑ Send</button>
+      <button class="tab-btn active" onclick="openTab('request')" id="tabRequest">💰 Request</button>
+      <button class="tab-btn" onclick="openTab('deposit')" id="tabDeposit">↓ Deposit</button>
     </div>
 
-    <!-- Request Payment Tab -->
-    <div id="receive" class="tab-content active">
-      <div class="scan-hint">
-        Enter amount → Generate QR<br>
-        <strong>Others scan this QR to pay you</strong>
+    <!-- SEND TAB -->
+    <div id="send" class="tab-content">
+      <div class="scan-section">
+        <div class="scan-text" id="sendHint">Scan a merchant's payment QR code<br><strong>Client view – pay with USDT</strong></div>
+        <button class="main-btn scan-btn" onclick="startQRScanner()" id="scanBtn">📷 Scan QR</button>
       </div>
-      <div class="input-group">
-        <label>Request Amount (USDT)</label>
-        <input type="number" id="receiveAmount" placeholder="e.g. 50" step="0.01" min="0.01">
-      </div>
-      <button class="main-btn" onclick="generateReceiveQR()">Generate Payment QR</button>
+      <div class="fee-notice">0.5% platform fee will be sent automatically to app wallet</div>
+
+      <video id="video" playsinline autoplay muted style="display:none;"></video>
+      <div id="scanResult" style="margin:16px 0;color:var(--success);font-weight:600;text-align:center;"></div>
+      <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none;background:var(--danger);">Stop Scanner</button>
+
+      <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
+      <div class="input-group"><label id="amountLabel">Amount (USDT)</label><input type="number" id="sendAmount" readonly placeholder="0.00 (scan QR to fill)"></div>
+      <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDT Now</button>
+      <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Processing transaction...</span></div>
+    </div>
+
+    <!-- REQUEST TAB -->
+    <div id="request" class="tab-content active">
+      <div class="scan-hint" id="requestHint">Enter amount → Generate QR<br><strong>Seller view – buyers scan to pay you</strong></div>
+      <div class="input-group"><label id="requestAmountLabel">Request Amount (USDT)</label><input type="number" id="requestAmount" placeholder="e.g. 50" step="0.01" min="0.01"></div>
+      <button class="main-btn" id="generateQRBtn" onclick="generateRequestQR()">Generate Payment QR</button>
       <div id="qrcode"></div>
     </div>
 
-    <!-- Send Tab – READ-ONLY -->
-    <div id="send" class="tab-content">
-      <div class="scan-hint">
-        Scan a payment QR first<br>
-        Fields will auto-fill and lock
+    <!-- DEPOSIT TAB -->
+    <div id="deposit" class="tab-content">
+      <div class="scan-hint" id="depositHint">Share this QR code to receive<br><strong>BNB or USDT (BEP-20) on BSC</strong></div>
+      <div id="depositQrcode" style="margin:24px auto;text-align:center;"></div>
+      <div id="depositWarning" class="warning" style="margin-top:20px;">
+        <strong>Important:</strong><br>
+        • Only send BNB or BEP-20 tokens<br>
+        • Sending from other networks (ERC-20, TRC-20, etc.) = permanent loss<br>
+        • Need ~0.001–0.005 BNB for gas to send out later
       </div>
-      <div class="input-group">
-        <label>Recipient Address</label>
-        <input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)">
-      </div>
-      <div class="input-group">
-        <label>Amount (USDT)</label>
-        <input type="number" id="sendAmount" readonly placeholder="0.00 (scan QR to fill)">
-      </div>
-      <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDT Now</button>
-      <div id="sendStatus" class="status waiting" style="display:none;">
-        <div class="spinner"></div>
-        <span id="sendMsg">Processing transaction...</span>
-      </div>
-    </div>
-
-    <!-- Scan to Pay Tab -->
-    <div id="scan" class="tab-content">
-      <div class="scan-hint">
-        Point camera at any payment QR
-      </div>
-      <button class="main-btn" onclick="startQRScanner()">Start Camera Scanner</button>
-      <video id="video" playsinline autoplay muted style="display:none;"></video>
-      <div id="scanResult" style="margin:16px 0; color:var(--success); font-weight:600; text-align:center;"></div>
-      <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none; background:var(--danger);">Stop Scanner</button>
+      <button class="main-btn" onclick="generateDepositQR()" id="refreshDepositBtn">Refresh Deposit QR</button>
     </div>
   </div>
 </div>
 
-<!-- ────── UNIFIED TOAST CONTAINER ────── -->
 <div id="toastContainer"></div>
 
 <script>
+// ──────────────────────────────────────────────
+// LANGUAGE SYSTEM
+// ──────────────────────────────────────────────
+let currentLang = localStorage.getItem("lang") || "en";
+
+const translations = {
+  en: {
+    title:"Wallet", subtitle:"USDT & BNB on Binance Smart Chain • Scan to Pay",
+    warning:"⚠️ Demo / Educational wallet only<br>Keys stored in browser • Use tiny amounts • Save private key!",
+    pkLabel:"Private Key (hex) or Generate New", createBtn:"Create New Wallet", importBtn:"Import Existing Wallet",
+    refreshBtn:"Refresh", tabSend:"↑ Send", tabRequest:"💰 Request", tabDeposit:"↓ Deposit",
+    sendHint:"Scan a merchant's payment QR code<br><strong>Client view – pay with USDT</strong>",
+    scanBtn:"📷 Scan QR", recipientLabel:"Recipient Address", amountLabel:"Amount (USDT)",
+    sendButton:"Send USDT Now", sendMsg:"Processing transaction...",
+    requestHint:"Enter amount → Generate QR<br><strong>Seller view – buyers scan to pay you</strong>",
+    requestAmountLabel:"Request Amount (USDT)", generateQRBtn:"Generate Payment QR",
+    depositHint:"Share this QR code to receive<br><strong>BNB or USDT (BEP-20) on BSC</strong>",
+    important:"Important:", depositWarning:"• Only send BNB or BEP-20 tokens<br>• Sending from other networks (ERC-20, TRC-20, etc.) = permanent loss<br>• Need ~0.001–0.005 BNB for gas to send out later",
+    refreshDepositBtn:"Refresh Deposit QR",
+    newWallet:"New wallet created successfully", invalidPkFormat:"Invalid private key format (must start with 0x and be 66 chars)",
+    invalidPk:"Invalid private key", walletImported:"Wallet imported successfully", walletLoaded:"Wallet loaded successfully",
+    qrGenerated:"Payment QR generated – share it!", scanFirst:"Please scan a valid payment QR first",
+    invalidAmount:"Invalid amount", txSuccess:"Transaction completed successfully!",
+    txFailed:"Transaction failed: ", cameraError:"Cannot access camera: ",
+    qrScanned:"✅ Payment QR scanned! Ready to send.", qrInvalid:"Could not extract valid address from QR"
+  },
+  es: {
+    title:"Billetera", subtitle:"USDT y BNB en Binance Smart Chain • Escanea para pagar",
+    warning:"⚠️ Demo / Cartera educativa solamente<br>Claves guardadas en el navegador • Usa cantidades pequeñas • ¡Guarda tu clave privada!",
+    pkLabel:"Clave Privada (hex) o Generar Nueva", createBtn:"Crear Nueva Billetera", importBtn:"Importar Billetera Existente",
+    refreshBtn:"Actualizar", tabSend:"↑ Enviar", tabRequest:"💰 Solicitar", tabDeposit:"↓ Depositar",
+    sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga con USDT</strong>",
+    scanBtn:"📷 Escanear QR", recipientLabel:"Dirección del Destinatario", amountLabel:"Cantidad (USDT)",
+    sendButton:"Enviar USDT Ahora", sendMsg:"Procesando transacción...",
+    requestHint:"Ingresa monto → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong>",
+    requestAmountLabel:"Monto a Solicitar (USDT)", generateQRBtn:"Generar QR de Pago",
+    depositHint:"Comparte este QR para recibir<br><strong>BNB o USDT (BEP-20) en BSC</strong>",
+    important:"Importante:", depositWarning:"• Solo envía BNB o tokens BEP-20<br>• Enviar desde otras redes (ERC-20, TRC-20, etc.) = pérdida permanente<br>• Necesitas ~0.001–0.005 BNB para gas al enviar",
+    refreshDepositBtn:"Actualizar QR de Depósito",
+    newWallet:"Nueva billetera creada con éxito", invalidPkFormat:"Formato de clave privada inválido (debe empezar con 0x y tener 66 caracteres)",
+    invalidPk:"Clave privada inválida", walletImported:"Billetera importada con éxito", walletLoaded:"Billetera cargada con éxito",
+    qrGenerated:"QR de pago generado – ¡compártelo!", scanFirst:"Por favor escanea primero un QR de pago válido",
+    invalidAmount:"Cantidad inválida", txSuccess:"¡Transacción completada con éxito!",
+    txFailed:"Transacción fallida: ", cameraError:"No se puede acceder a la cámara: ",
+    qrScanned:"✅ ¡QR de pago escaneado! Listo para enviar.", qrInvalid:"No se pudo extraer una dirección válida del QR"
+  }
+};
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("lang", lang);
+  refreshLanguageUI();
+}
+
+function refreshLanguageUI() {
+  const t = translations[currentLang];
+  document.getElementById("subtitle").textContent = t.subtitle;
+  document.getElementById("warning").innerHTML = t.warning;
+  document.getElementById("pkLabel").textContent = t.pkLabel;
+  document.getElementById("createBtn").textContent = t.createBtn;
+  document.getElementById("importBtn").textContent = t.importBtn;
+  document.getElementById("refreshBtn").textContent = t.refreshBtn;
+  document.getElementById("tabSend").innerHTML = t.tabSend;
+  document.getElementById("tabRequest").innerHTML = t.tabRequest;
+  document.getElementById("tabDeposit").innerHTML = t.tabDeposit;
+  document.getElementById("sendHint").innerHTML = t.sendHint;
+  document.getElementById("scanBtn").textContent = t.scanBtn;
+  document.getElementById("recipientLabel").textContent = t.recipientLabel;
+  document.getElementById("amountLabel").textContent = t.amountLabel;
+  document.getElementById("sendButton").textContent = t.sendButton;
+  document.getElementById("sendMsg").textContent = t.sendMsg;
+  document.getElementById("requestHint").innerHTML = t.requestHint;
+  document.getElementById("requestAmountLabel").textContent = t.requestAmountLabel;
+  document.getElementById("generateQRBtn").textContent = t.generateQRBtn;
+  document.getElementById("depositHint").innerHTML = t.depositHint;
+  document.getElementById("refreshDepositBtn").textContent = t.refreshDepositBtn;
+  document.getElementById("depositWarning").innerHTML = `<strong>${t.important}</strong><br>${t.depositWarning}`;
+
+  if (account) {
+    document.getElementById("walletTitle").textContent = `${t.title} (${shortenAddress(account.address)})`;
+  } else {
+    document.getElementById("walletTitle").textContent = t.title;
+  }
+
+  document.getElementById("langEn").classList.toggle("active", currentLang === "en");
+  document.getElementById("langEs").classList.toggle("active", currentLang === "es");
+}
+
 // ──────────────────────────────────────────────
 // Theme Toggle
 // ──────────────────────────────────────────────
@@ -294,283 +242,190 @@ function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute("data-theme");
   html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
-  const toggleBtn = document.querySelector(".theme-toggle");
-  toggleBtn.textContent = current === "dark" ? "☀️" : "🌙";
+  document.querySelector(".theme-toggle").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
 // ──────────────────────────────────────────────
-// UNIFIED TOAST SYSTEM (now with longer 4.5s delay)
+// Toast
 // ──────────────────────────────────────────────
-function showToast(message, type = "info", duration = 4500) {
+function showToast(key, type = "info", duration = 4500) {
+  const msg = translations[currentLang][key] || key;
   const container = document.getElementById("toastContainer");
-  
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  
-  let icon = "";
-  if (type === "success") icon = "✅";
-  else if (type === "error") icon = "❌";
-  else if (type === "warning") icon = "⚠️";
-  else icon = "ℹ️";
-  
-  toast.innerHTML = `${icon} ${message}`;
+  let icon = type==="success"?"✅":type==="error"?"❌":type==="warning"?"⚠️":"ℹ️";
+  toast.innerHTML = `${icon} ${msg}`;
   container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.animation = "toastOut 0.3s ease forwards";
-    setTimeout(() => toast.remove(), 300);
-  }, duration);
+  setTimeout(()=>{toast.style.animation="toastOut .3s ease forwards";setTimeout(()=>toast.remove(),300);},duration);
 }
 
 // ──────────────────────────────────────────────
-// Wallet Core
+// Wallet Core + 0.5% FEE FEATURE
 // ──────────────────────────────────────────────
 const USDT = "0x55d398326f99059ff775485246999027b3197955";
 const CHAIN_ID = "56";
 const BSC_RPC = "https://bsc-dataseed.binance.org/";
 const web3 = new Web3(BSC_RPC);
-const usdt = new web3.eth.Contract([
-  {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
-  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
-], USDT);
+const usdt = new web3.eth.Contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}], USDT);
+
+const FEE_WALLET = "0x0aCEdca91817EaCe78e4d31B166Ba2B523FcBa66";
+const FEE_PERCENT = 0.005; // 0.5%
 
 let account = null;
 let paymentRecipient = "";
 let hasScannedPayment = false;
 
-function shortenAddress(addr) {
-  if (!addr || addr.length < 42) return addr || "";
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+function shortenAddress(addr){if(!addr||addr.length<42)return addr||"";return addr.slice(0,6)+"..."+addr.slice(-4);}
+
+function generateNewWallet(){account=web3.eth.accounts.create();saveWallet();showWallet();showToast("newWallet","success");}
+function importWallet(){
+  const pk=document.getElementById("privateKey").value.trim();
+  if(!pk.startsWith("0x")||pk.length!==66){showToast("invalidPkFormat","error");return;}
+  try{account=web3.eth.accounts.privateKeyToAccount(pk);saveWallet();showWallet();showToast("walletImported","success");}
+  catch(e){showToast("invalidPk","error");}
+}
+function saveWallet(){if(account)localStorage.setItem("defispark_wallet_pk",account.privateKey);}
+function loadWallet(){const pk=localStorage.getItem("defispark_wallet_pk");if(pk){account=web3.eth.accounts.privateKeyToAccount(pk);showWallet();}}
+
+function showWallet(){
+  document.getElementById("walletSetup").style.display="none";
+  document.getElementById("walletDashboard").style.display="block";
+  refreshLanguageUI();
+  refreshBalances();
+  generateDepositQR();
+  showToast("walletLoaded","info");
 }
 
-function generateNewWallet() {
-  account = web3.eth.accounts.create();
-  saveWallet();
-  showWallet();
-  showToast("New wallet created successfully", "success");
+async function refreshBalances(){
+  if(!account)return;
+  try{
+    const usdtBal=await usdt.methods.balanceOf(account.address).call();
+    document.getElementById("usdtBalance").textContent=Number(web3.utils.fromWei(usdtBal,"ether")).toFixed(4);
+    const bnbBal=await web3.eth.getBalance(account.address);
+    document.getElementById("bnbBalance").textContent=Number(web3.utils.fromWei(bnbBal,"ether")).toFixed(4)+" BNB • BSC Network";
+  }catch(e){}
 }
 
-function importWallet() {
-  const pk = document.getElementById("privateKey").value.trim();
-  if (!pk.startsWith("0x") || pk.length !== 66) {
-    showToast("Invalid private key format (must start with 0x and be 66 chars)", "error");
-    return;
-  }
-  try {
-    account = web3.eth.accounts.privateKeyToAccount(pk);
-    saveWallet();
-    showWallet();
-    showToast("Wallet imported successfully", "success");
-  } catch(e) {
-    showToast("Invalid private key", "error");
-  }
+function generateRequestQR(){
+  const amt=parseFloat(document.getElementById("requestAmount").value)||0;
+  let uri=`ethereum:${USDT}@${CHAIN_ID}/transfer?address=${account.address}`;
+  if(amt>0){const wei=web3.utils.toWei(amt.toString(),"ether");uri+=`&uint256=${wei}`;}
+  document.getElementById("qrcode").innerHTML="";
+  new QRCodeStyling({width:280,height:280,data:uri,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#8b5cf6",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("qrcode"));
+  showToast("qrGenerated","info");
 }
 
-function saveWallet() {
-  if (account) localStorage.setItem("defispark_wallet_pk", account.privateKey);
-}
-
-function loadWallet() {
-  const pk = localStorage.getItem("defispark_wallet_pk");
-  if (pk) {
-    account = web3.eth.accounts.privateKeyToAccount(pk);
-    showWallet();
-  }
-}
-
-function showWallet() {
-  document.getElementById("walletSetup").style.display = "none";
-  document.getElementById("walletDashboard").style.display = "block";
-  document.getElementById("userAddress").textContent = account.address;
-  checkBalance();
-}
-
-function copyAddress() {
-  navigator.clipboard.writeText(account.address);
-  showToast("✅ Address copied to clipboard!", "success");
-}
-
-async function checkBalance() {
-  if (!account) return;
-  try {
-    const bal = await usdt.methods.balanceOf(account.address).call();
-    document.getElementById("balance").textContent = Number(web3.utils.fromWei(bal, "ether")).toFixed(4);
-  } catch(e) {}
-}
-
-function generateReceiveQR() {
-  const amt = parseFloat(document.getElementById("receiveAmount").value) || 0;
-  let uri = `ethereum:${USDT}@${CHAIN_ID}/transfer?address=${account.address}`;
-  if (amt > 0) {
-    const wei = web3.utils.toWei(amt.toString(), "ether");
-    uri += `&uint256=${wei}`;
-  }
-  document.getElementById("qrcode").innerHTML = "";
-  new QRCodeStyling({
-    width: 280, height: 280,
-    data: uri,
-    margin: 8,
-    qrOptions: { errorCorrectionLevel: "H" },
-    dotsOptions: { color: "#8b5cf6", type: "rounded" },
-    backgroundOptions: { color: "#ffffff" }
-  }).append(document.getElementById("qrcode"));
-  showToast("Payment QR generated – share it!", "info");
-}
-
-// ──────────────────────────────────────────────
-// Send Transaction + Auto-hide status box
-// ──────────────────────────────────────────────
+// ────── 0.5% FEE LOGIC (seller gets exact QR amount, fee goes to app wallet) ──────
 async function sendUSDT() {
-  if (!account || !paymentRecipient || !hasScannedPayment) {
-    showToast("Please scan a valid payment QR first", "error");
-    return;
-  }
-  const amt = parseFloat(document.getElementById("sendAmount").value);
-  if (isNaN(amt) || amt <= 0) {
-    showToast("Invalid amount", "error");
-    return;
-  }
+  if (!account || !paymentRecipient || !hasScannedPayment) { showToast("scanFirst", "error"); return; }
+  let amt = parseFloat(document.getElementById("sendAmount").value);
+  if (isNaN(amt) || amt <= 0) { showToast("invalidAmount", "error"); return; }
 
   const statusEl = document.getElementById("sendStatus");
   const msgEl = document.getElementById("sendMsg");
   statusEl.style.display = "flex";
-  msgEl.textContent = "Processing transaction...";
 
   try {
-    const value = web3.utils.toWei(amt.toString(), "ether");
-    const data = usdt.methods.transfer(paymentRecipient, value).encodeABI();
-    const gas = await usdt.methods.transfer(paymentRecipient, value).estimateGas({from: account.address});
+    const fee = amt * FEE_PERCENT;
+    const amountWei = web3.utils.toWei(amt.toString(), "ether");
+    const feeWei = web3.utils.toWei(fee.toString(), "ether");
     const gasPrice = await web3.eth.getGasPrice();
 
-    const tx = { from: account.address, to: USDT, gas, gasPrice, data };
-    const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
-    await web3.eth.sendSignedTransaction(signed.rawTransaction);
+    // 1. Send 0.5% platform fee
+    msgEl.textContent = "Sending 0.5% platform fee...";
+    const feeData = usdt.methods.transfer(FEE_WALLET, feeWei).encodeABI();
+    const feeGas = await usdt.methods.transfer(FEE_WALLET, feeWei).estimateGas({from: account.address});
+    const feeTx = { from: account.address, to: USDT, gas: feeGas, gasPrice, data: feeData };
+    const feeSigned = await web3.eth.accounts.signTransaction(feeTx, account.privateKey);
+    await web3.eth.sendSignedTransaction(feeSigned.rawTransaction);
+
+    // 2. Send full amount to seller
+    msgEl.textContent = "Sending payment to seller...";
+    const mainData = usdt.methods.transfer(paymentRecipient, amountWei).encodeABI();
+    const mainGas = await usdt.methods.transfer(paymentRecipient, amountWei).estimateGas({from: account.address});
+    const mainTx = { from: account.address, to: USDT, gas: mainGas, gasPrice, data: mainData };
+    const mainSigned = await web3.eth.accounts.signTransaction(mainTx, account.privateKey);
+    await web3.eth.sendSignedTransaction(mainSigned.rawTransaction);
 
     statusEl.className = "status success";
-    msgEl.textContent = "✅ Transaction sent!";
-    showToast("Transaction completed successfully!", "success", 5000);
+    msgEl.textContent = "✅ Payment + 0.5% fee sent!";
+    showToast("txSuccess", "success", 5000);
 
-    // Auto-hide status box after user can read it
     setTimeout(() => {
       statusEl.style.display = "none";
       statusEl.className = "status waiting";
       resetSendScreen();
     }, 4200);
 
-    checkBalance();
+    refreshBalances();
 
   } catch(e) {
     msgEl.textContent = "Failed";
     statusEl.className = "status waiting";
-    showToast("Transaction failed: " + (e.message || e), "error", 5000);
-
-    // Auto-hide error box after delay
-    setTimeout(() => {
-      statusEl.style.display = "none";
-    }, 5200);
+    showToast("txFailed", "error", 5000);
+    setTimeout(() => { statusEl.style.display = "none"; }, 5200);
   }
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner & Parsing
+// DEPOSIT QR + QR Scanner (unchanged)
 // ──────────────────────────────────────────────
-let stream;
-const video = document.getElementById("video");
-const stopBtn = document.getElementById("stopBtn");
+function generateDepositQR(){
+  if(!account)return;
+  document.getElementById("depositQrcode").innerHTML="";
+  new QRCodeStyling({width:280,height:280,data:account.address,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#10b981",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("depositQrcode"));
+}
 
-async function startQRScanner() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    video.srcObject = stream;
-    video.style.display = "block";
-    stopBtn.style.display = "block";
-    video.play();
+let stream; const video=document.getElementById("video"); const stopBtn=document.getElementById("stopBtn");
+async function startQRScanner(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    video.srcObject=stream;video.style.display="block";stopBtn.style.display="block";video.play();
     requestAnimationFrame(scan);
-  } catch(e) {
-    showToast("Cannot access camera: " + e.message, "error");
-  }
+  }catch(e){showToast("cameraError","error");}
 }
-
-function stopQRScanner() {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  video.style.display = "none";
-  stopBtn.style.display = "none";
-  document.getElementById("scanResult").textContent = "";
+function stopQRScanner(){if(stream)stream.getTracks().forEach(t=>t.stop());video.style.display="none";stopBtn.style.display="none";document.getElementById("scanResult").textContent="";}
+function scan(){
+  if(video.videoWidth===0)return requestAnimationFrame(scan);
+  const canvas=document.createElement("canvas");canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0);
+  const code=jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
+  if(code){handleScanned(code.data);stopQRScanner();}else{requestAnimationFrame(scan);}
 }
-
-function scan() {
-  if (video.videoWidth === 0) return requestAnimationFrame(scan);
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video, 0, 0);
-  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-  if (code) {
-    handleScanned(code.data);
-    stopQRScanner();
-  } else {
-    requestAnimationFrame(scan);
-  }
+function handleScanned(data){
+  let address=null,amount=null;
+  try{
+    const url=new URL(data.startsWith("ethereum:")?data.replace(/^ethereum:/i,"https://dummy/"):"https://dummy/?"+data);
+    address=url.searchParams.get("address");
+    const weiStr=url.searchParams.get("uint256")||url.searchParams.get("value");
+    if(weiStr)amount=Number(web3.utils.fromWei(weiStr,"ether")).toFixed(6);
+  }catch(e){}
+  if(!address&&data.match(/^0x[a-fA-F0-9]{40}$/))address=data;
+  else if(!address&&data.includes("0x")){const match=data.match(/0x[a-fA-F0-9]{40}/i);if(match)address=match[0];}
+  if(address){
+    paymentRecipient=address;hasScannedPayment=true;
+    document.getElementById("sendTo").value=shortenAddress(address);
+    if(amount&&amount>0)document.getElementById("sendAmount").value=amount;
+    document.getElementById("sendButton").disabled=false;
+    showToast("qrScanned","success");
+  }else{showToast("qrInvalid","error");}
 }
-
-function handleScanned(data) {
-  let address = null;
-  let amount = null;
-
-  try {
-    const url = new URL(data.startsWith("ethereum:") ? data.replace(/^ethereum:/i, "https://dummy/") : "https://dummy/?" + data);
-    address = url.searchParams.get("address");
-    const weiStr = url.searchParams.get("uint256") || url.searchParams.get("value");
-    if (weiStr) amount = Number(web3.utils.fromWei(weiStr, "ether")).toFixed(6);
-  } catch(e) {}
-
-  if (!address && data.match(/^0x[a-fA-F0-9]{40}$/)) address = data;
-  else if (!address && data.includes("0x")) {
-    const match = data.match(/0x[a-fA-F0-9]{40}/i);
-    if (match) address = match[0];
-  }
-
-  if (address) {
-    paymentRecipient = address;
-    hasScannedPayment = true;
-
-    document.getElementById("sendTo").value = shortenAddress(address);
-    if (amount && amount > 0) document.getElementById("sendAmount").value = amount;
-
-    document.getElementById("sendButton").disabled = false;
-    openTab("send");
-    showToast("✅ Payment QR scanned! Ready to send.", "success");
-  } else {
-    showToast("Could not extract valid address from QR", "error");
-  }
-}
-
-function resetSendScreen() {
-  hasScannedPayment = false;
-  paymentRecipient = "";
-  document.getElementById("sendTo").value = "";
-  document.getElementById("sendAmount").value = "";
-  document.getElementById("sendButton").disabled = true;
-}
-
-function openTab(name) {
-  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+function resetSendScreen(){hasScannedPayment=false;paymentRecipient="";document.getElementById("sendTo").value="";document.getElementById("sendAmount").value="";document.getElementById("sendButton").disabled=true;}
+function openTab(name){
+  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"));
   document.getElementById(name).classList.add("active");
   document.querySelector(`[onclick="openTab('${name}')"]`).classList.add("active");
+  if(name==='deposit')generateDepositQR();
 }
 
 // ──────────────────────────────────────────────
 // Init
 // ──────────────────────────────────────────────
-window.addEventListener("load", () => {
+window.addEventListener("load",()=>{
+  refreshLanguageUI();
   loadWallet();
-  if (!account) {
-    // Show setup screen
-  } else {
-    document.getElementById("sendButton").disabled = true;
-    showToast("Wallet loaded successfully", "info");
-  }
+  if(!account)document.getElementById("sendButton").disabled=true;
 });
 </script>
 </body>
