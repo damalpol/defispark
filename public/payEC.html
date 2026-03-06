@@ -49,7 +49,6 @@
     .scan-text{flex:1;font-size:13px;color:var(--text-secondary);line-height:1.4;}
     .scan-text strong{display:block;color:var(--text);font-weight:600;margin-top:3px;}
     .scan-btn{flex:0 0 155px;padding:14px 12px;font-size:14px;white-space:nowrap;}
-    .fee-notice{background:rgba(139,92,246,0.15);color:#c4b5fd;padding:10px;border-radius:12px;font-size:13px;margin:8px 0;text-align:center;}
     .rate-section {display:flex; align-items:center; justify-content:space-between; gap:10px; margin:12px 0;}
     .rate-notice {flex:1; background:rgba(59,130,246,0.15); color:#93c5fd; padding:10px; border-radius:12px; font-size:13px; text-align:center;}
     .refresh-rate-btn {background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; min-width:110px; justify-content:center;}
@@ -62,32 +61,10 @@
     .toast.warning{border-color:var(--warning);color:var(--warning);}
     @keyframes toastIn{from{transform:translate(-50%,-20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
     @keyframes toastOut{to{transform:translate(-50%,-20px);opacity:0;}}
-    .address-display {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin: 16px 0;
-      font-size: 15px;
-      word-break: break-all;
-      padding: 10px;
-      background: var(--input-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-    .copy-btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 13px;
-      min-width: 80px;
-      transition: background 0.2s;
-    }
-    .copy-btn:hover { background: var(--primary-dark); }
-    .copy-btn.copied { background: var(--success); }
+    .address-display {display: flex;align-items: center;justify-content: center;gap: 10px;margin: 16px 0;font-size: 15px;word-break: break-all;padding: 10px;background: var(--input-bg);border-radius: 12px;border: 1px solid var(--border);}
+    .copy-btn {background: var(--primary);color: white;border: none;padding: 8px 12px;border-radius: 10px;cursor: pointer;font-size: 13px;min-width: 80px;transition: background 0.2s;}
+    .copy-btn:hover {background: var(--primary-dark);}
+    .copy-btn.copied {background: var(--success);}
     @media (max-width:500px){.body{padding:12px 12px 100px;}.container{padding:18px 14px;border-radius:20px;}.toast{min-width:90vw;}.scan-section{flex-wrap:wrap;}.scan-btn{flex:1;}}
   </style>
 </head>
@@ -183,6 +160,10 @@
         <button class="copy-btn" id="copyAddressBtn" onclick="copyWalletAddress()">Copy</button>
       </div>
 
+      <div id="depositStatus" class="status waiting" style="display:none; margin:16px 0;">
+        <div class="spinner"></div><span id="depositMsg">Waiting for incoming deposit...</span>
+      </div>
+
       <div id="depositWarning" class="warning" style="margin-top:20px;">
         <strong>Important:</strong><br>
         • Only send MATIC or tokens on Amoy testnet<br>
@@ -222,8 +203,9 @@ const translations = {
     invalidAmount:"Invalid amount", txSuccess:"Transaction completed successfully!",
     txFailed:"Transaction failed: ", cameraError:"Cannot access camera: ",
     qrScanned:"✅ Payment QR scanned! Ready to send.", qrInvalid:"Could not extract valid address from QR",
-    copySuccess: "Address copied!",
-    copyFailed: "Failed to copy address"
+    copySuccess: "Address copied!", copyFailed: "Failed to copy address",
+    depositReceived: "Deposit received!", depositMatic: "Received {amount} MATIC", depositUsdc: "Received {amount} USDC",
+    waitingDeposit: "Waiting for incoming deposit..."
   },
   es: {
     title:"Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
@@ -244,8 +226,9 @@ const translations = {
     invalidAmount:"Cantidad inválida", txSuccess:"¡Transacción completada con éxito!",
     txFailed:"Transacción fallida: ", cameraError:"No se puede acceder a la cámara: ",
     qrScanned:"✅ ¡QR de pago escaneado! Listo para enviar.", qrInvalid:"No se pudo extraer una dirección válida del QR",
-    copySuccess: "¡Dirección copiada!",
-    copyFailed: "No se pudo copiar la dirección"
+    copySuccess: "¡Dirección copiada!", copyFailed: "No se pudo copiar la dirección",
+    depositReceived: "¡Depósito recibido!", depositMatic: "Recibido {amount} MATIC", depositUsdc: "Recibido {amount} USDC",
+    waitingDeposit: "Esperando depósito entrante..."
   }
 };
 
@@ -278,6 +261,7 @@ function refreshLanguageUI() {
   document.getElementById("depositHint").innerHTML = t.depositHint;
   document.getElementById("refreshDepositBtn").textContent = t.refreshDepositBtn;
   document.getElementById("depositWarning").innerHTML = `<strong>${t.important}</strong><br>${t.depositWarning}`;
+  document.getElementById("depositMsg").textContent = t.waitingDeposit;
 
   if (account) {
     document.getElementById("walletTitle").textContent = `${t.title} (${shortenAddress(account.address)})`;
@@ -291,27 +275,7 @@ function refreshLanguageUI() {
 }
 
 // ──────────────────────────────────────────────
-// Copy wallet address
-// ──────────────────────────────────────────────
-function copyWalletAddress() {
-  if (!account) return;
-  navigator.clipboard.writeText(account.address).then(() => {
-    const btn = document.getElementById("copyAddressBtn");
-    const originalText = btn.textContent;
-    btn.textContent = currentLang === "es" ? "¡Copiado!" : "Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = currentLang === "es" ? "Copiar" : "Copy";
-      btn.classList.remove("copied");
-    }, 2000);
-    showToast("copySuccess", "success", 2000);
-  }).catch(() => {
-    showToast("copyFailed", "error");
-  });
-}
-
-// ──────────────────────────────────────────────
-// Theme Toggle
+// Theme, Toast, Copy
 // ──────────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
@@ -320,9 +284,6 @@ function toggleTheme() {
   document.querySelector(".theme-toggle").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
-// ──────────────────────────────────────────────
-// Toast
-// ──────────────────────────────────────────────
 function showToast(key, type = "info", forcedDuration = null) {
   const msg = translations[currentLang][key] || key;
   const container = document.getElementById("toastContainer");
@@ -350,25 +311,49 @@ function showToast(key, type = "info", forcedDuration = null) {
   }, visibleMs);
 }
 
+function copyWalletAddress() {
+  if (!account) return;
+  navigator.clipboard.writeText(account.address).then(() => {
+    const btn = document.getElementById("copyAddressBtn");
+    const original = btn.textContent;
+    btn.textContent = currentLang === "es" ? "¡Copiado!" : "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = currentLang === "es" ? "Copiar" : "Copy";
+      btn.classList.remove("copied");
+    }, 2000);
+    showToast("copySuccess", "success", 2000);
+  }).catch(() => showToast("copyFailed", "error"));
+}
+
 // ──────────────────────────────────────────────
-// NETWORK & TOKEN CONFIG (Polygon Amoy + mock USDC)
+// NETWORK & TOKEN CONFIG
 // ──────────────────────────────────────────────
 const TOKEN_ADDRESS = "0xf2BABBC04f3EcADf2e8D3c4796F1AFD3AC125883";
 const CHAIN_ID = "80002";
-const RPC_URL = "https://rpc-amoy.polygon.technology/";
-const TOKEN_DECIMALS = 6;
+const RPC_HTTP = "https://rpc-amoy.polygon.technology/";
+const RPC_WS   = "wss://polygon-amoy-bor-rpc.publicnode.com";
 
-const web3 = new Web3(RPC_URL);
+const web3 = new Web3(RPC_HTTP);
+const web3Ws = new Web3(RPC_WS);
 
 const tokenContract = new web3.eth.Contract([
   {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
-  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
+  {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}
 ], TOKEN_ADDRESS);
 
 let account = null;
 let paymentRecipient = "";
 let hasScannedPayment = false;
+let lastMaticBalance = "0";
+let lastUsdcBalance = "0";
+let wsSubscription = null;
+let pollingInterval = null;
 
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
 function shortenAddress(addr){if(!addr||addr.length<42)return addr||"";return addr.slice(0,6)+"..."+addr.slice(-4);}
 
 function fromTokenUnits(value) {
@@ -379,6 +364,66 @@ function toTokenUnits(amountStr) {
   return web3.utils.toWei(amountStr, "mwei");
 }
 
+// ──────────────────────────────────────────────
+// Deposit Monitoring
+// ──────────────────────────────────────────────
+async function startDepositMonitoring() {
+  if (!account) return;
+
+  document.getElementById("depositStatus").style.display = "flex";
+
+  lastMaticBalance = await web3.eth.getBalance(account.address);
+  lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
+
+  // WebSocket for USDC Transfer events
+  try {
+    wsSubscription = tokenContract.events.Transfer({
+      filter: { to: account.address },
+      fromBlock: 'latest'
+    })
+    .on('data', (event) => {
+      const amount = fromTokenUnits(event.returnValues.value);
+      showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", amount)}`, "success");
+      refreshBalances();
+    })
+    .on('error', console.warn);
+  } catch (e) { console.warn("WS failed", e); }
+
+  // Polling fallback for MATIC + safety
+  pollingInterval = setInterval(async () => {
+    if (document.getElementById("walletDashboard").style.display !== "block") return;
+
+    try {
+      const currentMatic = await web3.eth.getBalance(account.address);
+      const currentUsdc  = await tokenContract.methods.balanceOf(account.address).call();
+
+      if (currentMatic !== lastMaticBalance && lastMaticBalance !== "0") {
+        const diff = Number(web3.utils.fromWei(currentMatic - lastMaticBalance, "ether")).toFixed(4);
+        showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositMatic.replace("{amount}", diff)}`, "success");
+      }
+      if (currentUsdc !== lastUsdcBalance && lastUsdcBalance !== "0") {
+        const diff = fromTokenUnits(currentUsdc - lastUsdcBalance);
+        showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", diff)}`, "success");
+      }
+
+      lastMaticBalance = currentMatic;
+      lastUsdcBalance  = currentUsdc;
+
+      document.getElementById("usdtBalance").textContent = fromTokenUnits(currentUsdc);
+      document.getElementById("bnbBalance").textContent = Number(web3.utils.fromWei(currentMatic,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
+    } catch (e) {}
+  }, 12000);
+}
+
+function stopDepositMonitoring() {
+  if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+  document.getElementById("depositStatus").style.display = "none";
+}
+
+// ──────────────────────────────────────────────
+// Wallet Core
+// ──────────────────────────────────────────────
 function generateNewWallet(){account=web3.eth.accounts.create();saveWallet();showWallet();showToast("newWallet","success");}
 function importWallet(){
   const pk=document.getElementById("privateKey").value.trim();
@@ -395,6 +440,7 @@ function showWallet(){
   refreshLanguageUI();
   refreshBalances();
   generateDepositQR();
+  startDepositMonitoring();
   showToast("walletLoaded","info");
 }
 
@@ -409,7 +455,7 @@ async function refreshBalances(){
 }
 
 // ──────────────────────────────────────────────
-// LIVE RATE (using tether as proxy for ARS conversion)
+// LIVE RATE
 // ──────────────────────────────────────────────
 let currentUsdtArsRate = 1400;
 let isFetchingRate = false;
@@ -472,7 +518,7 @@ function generateRequestQR(){
 }
 
 // ──────────────────────────────────────────────
-// SEND
+// SEND USDC
 // ──────────────────────────────────────────────
 async function sendUSDT() {
   if (!account || !paymentRecipient || !hasScannedPayment) { showToast("scanFirst", "error"); return; }
@@ -486,8 +532,6 @@ async function sendUSDT() {
   try {
     const amountWei = toTokenUnits(amt.toString());
     const gasPrice = await web3.eth.getGasPrice();
-
-    msgEl.textContent = "Sending USDC...";
     const data = tokenContract.methods.transfer(paymentRecipient, amountWei).encodeABI();
     const gas = await tokenContract.methods.transfer(paymentRecipient, amountWei).estimateGas({from: account.address});
     const tx = { from: account.address, to: TOKEN_ADDRESS, gas, gasPrice, data };
@@ -505,7 +549,6 @@ async function sendUSDT() {
     }, 4200);
 
     refreshBalances();
-
   } catch(e) {
     msgEl.textContent = "Failed";
     statusEl.className = "status waiting";
@@ -515,96 +558,50 @@ async function sendUSDT() {
 }
 
 // ──────────────────────────────────────────────
-// DEPOSIT + SCANNER + COPY ADDRESS
+// DEPOSIT QR + SCANNER
 // ──────────────────────────────────────────────
 function generateDepositQR(){
-  if(!account) return;
+  if(!account)return;
   document.getElementById("depositQrcode").innerHTML="";
-  new QRCodeStyling({
-    width:280,
-    height:280,
-    data:account.address,
-    margin:8,
-    qrOptions:{errorCorrectionLevel:"H"},
-    dotsOptions:{color:"#10b981",type:"rounded"},
-    backgroundOptions:{color:"#ffffff"}
-  }).append(document.getElementById("depositQrcode"));
-
-  // Update visible address + copy button
+  new QRCodeStyling({width:280,height:280,data:account.address,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#10b981",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("depositQrcode"));
   document.getElementById("walletAddressText").textContent = account.address;
-  document.getElementById("copyAddressBtn").textContent = currentLang === "es" ? "Copiar" : "Copy";
 }
 
-let stream; 
-const video = document.getElementById("video"); 
-const stopBtn = document.getElementById("stopBtn");
-
+let stream; const video=document.getElementById("video"); const stopBtn=document.getElementById("stopBtn");
 async function startQRScanner(){
   try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    video.srcObject = stream;
-    video.style.display = "block";
-    stopBtn.style.display = "block";
-    video.play();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    video.srcObject=stream;video.style.display="block";stopBtn.style.display="block";video.play();
     requestAnimationFrame(scan);
   }catch(e){showToast("cameraError","error");}
 }
-
-function stopQRScanner(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  video.style.display="none";
-  stopBtn.style.display="none";
-  document.getElementById("scanResult").textContent="";
-}
-
+function stopQRScanner(){if(stream)stream.getTracks().forEach(t=>t.stop());video.style.display="none";stopBtn.style.display="none";document.getElementById("scanResult").textContent="";}
 function scan(){
-  if(video.videoWidth===0) return requestAnimationFrame(scan);
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  if(video.videoWidth===0)return requestAnimationFrame(scan);
+  const canvas=document.createElement("canvas");canvas.width=video.videoWidth;canvas.height=video.videoHeight;
   canvas.getContext("2d").drawImage(video,0,0);
-  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
-  if(code){
-    handleScanned(code.data);
-    stopQRScanner();
-  }else{
-    requestAnimationFrame(scan);
-  }
+  const code=jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
+  if(code){handleScanned(code.data);stopQRScanner();}else{requestAnimationFrame(scan);}
 }
-
 function handleScanned(data){
   let address=null,amount=null;
   try{
-    const url = new URL(data.startsWith("polygon:")?data.replace(/^polygon:/i,"https://dummy/"):"https://dummy/?"+data);
-    address = url.searchParams.get("address");
-    const weiStr = url.searchParams.get("uint256")||url.searchParams.get("value");
-    if(weiStr) amount = Number(fromTokenUnits(weiStr));
+    const url=new URL(data.startsWith("polygon:")?data.replace(/^polygon:/i,"https://dummy/"):"https://dummy/?"+data);
+    address=url.searchParams.get("address");
+    const weiStr=url.searchParams.get("uint256")||url.searchParams.get("value");
+    if(weiStr)amount=Number(fromTokenUnits(weiStr));
   }catch(e){}
-  if(!address && data.match(/^0x[a-fA-F0-9]{40}$/)) address = data;
-  else if(!address && data.includes("0x")){
-    const match = data.match(/0x[a-fA-F0-9]{40}/i);
-    if(match) address = match[0];
-  }
+  if(!address&&data.match(/^0x[a-fA-F0-9]{40}$/))address=data;
+  else if(!address&&data.includes("0x")){const match=data.match(/0x[a-fA-F0-9]{40}/i);if(match)address=match[0];}
   if(address){
-    paymentRecipient = address;
-    hasScannedPayment = true;
-    document.getElementById("sendTo").value = shortenAddress(address);
-    if(amount && amount>0) document.getElementById("sendAmount").value = amount;
-    document.getElementById("sendButton").disabled = false;
+    paymentRecipient=address;hasScannedPayment=true;
+    document.getElementById("sendTo").value=shortenAddress(address);
+    if(amount&&amount>0)document.getElementById("sendAmount").value=amount;
+    document.getElementById("sendButton").disabled=false;
     showToast("qrScanned","success");
-  }else{
-    showToast("qrInvalid","error");
-  }
+  }else{showToast("qrInvalid","error");}
 }
-
-function resetSendScreen(){
-  hasScannedPayment = false;
-  paymentRecipient = "";
-  document.getElementById("sendTo").value = "";
-  document.getElementById("sendAmount").value = "";
-  document.getElementById("sendButton").disabled = true;
-}
-
+function resetSendScreen(){hasScannedPayment=false;paymentRecipient="";document.getElementById("sendTo").value="";document.getElementById("sendAmount").value="";document.getElementById("sendButton").disabled=true;}
 function openTab(name){
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"));
@@ -619,9 +616,11 @@ function openTab(name){
 window.addEventListener("load",()=>{
   refreshLanguageUI();
   loadWallet();
-  if(!account) document.getElementById("sendButton").disabled = true;
+  if(!account)document.getElementById("sendButton").disabled=true;
   fetchUsdtArsRate();
 });
+
+window.addEventListener("beforeunload", stopDepositMonitoring);
 </script>
 </body>
 </html>
