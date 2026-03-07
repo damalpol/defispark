@@ -42,7 +42,7 @@
     #video{width:100%;max-width:320px;border-radius:16px;margin:16px auto;display:block;border:2px solid var(--border);}
     .status{padding:12px;border-radius:16px;font-weight:600;margin:8px 0;text-align:center;min-height:50px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;}
     .waiting{background:rgba(249,115,22,0.15);color:#fb923c;}
-    .success{background:rgba(16,185,129,0.15);color:var(--success);border:1px solid rgba(16,185,129,0.3);}
+    .success{background:rgba(16,185,129,0.25);color:var(--success);border:1px solid var(--success);}
     .spinner{width:16px;height:16px;border:3px solid rgba(255,255,255,0.3);border-top:3px solid var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg);}}
     .scan-section{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;}
@@ -53,14 +53,14 @@
     .rate-notice {flex:1; background:rgba(59,130,246,0.15); color:#93c5fd; padding:10px; border-radius:12px; font-size:13px; text-align:center;}
     .refresh-rate-btn {background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; min-width:110px; justify-content:center;}
     .refresh-rate-btn:disabled {background:#475569; cursor:not-allowed;}
-    #toastContainer{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:380px;width:calc(100%-32px);}
-    .toast{background:var(--card);color:var(--text);padding:14px 20px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;min-width:300px;border:1px solid;animation:toastIn .3s ease,toastOut .3s ease 4.2s forwards;opacity:0;}
+    #toastContainer{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:12px;align-items:center;max-width:420px;width:calc(100%-32px);}
+    .toast{background:var(--card);color:var(--text);padding:16px 24px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:14px;font-size:15px;font-weight:600;min-width:340px;border:1px solid;animation:toastIn .4s ease,toastOut 1s ease 12s forwards;opacity:0;line-height:1.4;}
     .toast.success{border-color:var(--success);color:var(--success);}
     .toast.error{border-color:var(--danger);color:var(--danger);}
     .toast.info{border-color:var(--info);color:var(--info);}
     .toast.warning{border-color:var(--warning);color:var(--warning);}
-    @keyframes toastIn{from{transform:translate(-50%,-20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
-    @keyframes toastOut{to{transform:translate(-50%,-20px);opacity:0;}}
+    @keyframes toastIn{from{transform:translate(-50%,-30px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+    @keyframes toastOut{to{transform:translate(-50%,-30px);opacity:0;}}
     .address-display {display: flex;align-items: center;justify-content: center;gap: 10px;margin: 16px 0;font-size: 15px;word-break: break-all;padding: 10px;background: var(--input-bg);border-radius: 12px;border: 1px solid var(--border);}
     .copy-btn {background: var(--primary);color: white;border: none;padding: 8px 12px;border-radius: 10px;cursor: pointer;font-size: 13px;min-width: 80px;transition: background 0.2s;}
     .copy-btn:hover {background: var(--primary-dark);}
@@ -119,7 +119,7 @@
       <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none;background:var(--danger);">Stop Scanner</button>
 
       <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
-      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" readonly placeholder="0.00 (scan QR to fill)"></div>
+      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount"  placeholder="0.00 (scan QR to fill)"></div>
       <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Processing transaction...</span></div>
     </div>
@@ -205,7 +205,9 @@ const translations = {
     qrScanned:"✅ Payment QR scanned! Ready to send.", qrInvalid:"Could not extract valid address from QR",
     copySuccess: "Address copied!", copyFailed: "Failed to copy address",
     depositReceived: "Deposit received!", depositMatic: "Received {amount} MATIC", depositUsdc: "Received {amount} USDC",
-    waitingDeposit: "Waiting for incoming deposit..."
+    waitingDeposit: "Waiting for incoming deposit...",
+    txSuccessLong: "Transaction successful! Balance updated.",
+    qrScannedLong: "QR scanned successfully – ready to send"
   },
   es: {
     title:"Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
@@ -228,7 +230,9 @@ const translations = {
     qrScanned:"✅ ¡QR de pago escaneado! Listo para enviar.", qrInvalid:"No se pudo extraer una dirección válida del QR",
     copySuccess: "¡Dirección copiada!", copyFailed: "No se pudo copiar la dirección",
     depositReceived: "¡Depósito recibido!", depositMatic: "Recibido {amount} MATIC", depositUsdc: "Recibido {amount} USDC",
-    waitingDeposit: "Esperando depósito entrante..."
+    waitingDeposit: "Esperando depósito entrante...",
+    txSuccessLong: "¡Transacción exitosa! Saldo actualizado.",
+    qrScannedLong: "QR escaneado con éxito – listo para enviar"
   }
 };
 
@@ -275,7 +279,7 @@ function refreshLanguageUI() {
 }
 
 // ──────────────────────────────────────────────
-// Theme, Toast, Copy
+// Theme Toggle
 // ──────────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
@@ -284,6 +288,9 @@ function toggleTheme() {
   document.querySelector(".theme-toggle").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
+// ──────────────────────────────────────────────
+// Improved Toast – longer duration + slower fade
+// ──────────────────────────────────────────────
 function showToast(key, type = "info", forcedDuration = null) {
   const msg = translations[currentLang][key] || key;
   const container = document.getElementById("toastContainer");
@@ -293,24 +300,39 @@ function showToast(key, type = "info", forcedDuration = null) {
   toast.innerHTML = `${icon} ${msg}`;
   container.appendChild(toast);
 
+  // Click to dismiss early
   toast.style.cursor = "pointer";
   toast.addEventListener("click", () => {
-    toast.style.animation = "toastOut 0.4s ease forwards";
-    setTimeout(() => toast.remove(), 400);
+    toast.style.animation = "toastOut 0.6s ease forwards";
+    setTimeout(() => toast.remove(), 600);
   });
 
-  let visibleMs = forcedDuration !== null ? forcedDuration :
-                  (type === "success" || type === "error") ? 8000 :
-                  type === "warning" ? 7000 : 5000;
+  // Duration logic – much longer for deposit & tx success
+  let visibleMs;
+  if (forcedDuration !== null) {
+    visibleMs = forcedDuration;
+  } else if (key.includes("deposit") || key === "txSuccess" || key === "txSuccessLong") {
+    visibleMs = 15000;  // 15 seconds for deposit/tx success
+  } else if (type === "success" || type === "error") {
+    visibleMs = 10000;  // 10 seconds
+  } else if (type === "warning") {
+    visibleMs = 9000;
+  } else {
+    visibleMs = 7000;
+  }
 
+  // Start fade after visible time
   setTimeout(() => {
-    toast.style.animation = "toastOut 0.6s ease forwards";
+    toast.style.animation = "toastOut 1.2s ease forwards"; // slower fade = more readable
     setTimeout(() => {
       if (toast.parentNode) toast.remove();
-    }, 600);
+    }, 1200);
   }, visibleMs);
 }
 
+// ──────────────────────────────────────────────
+// Copy Address
+// ──────────────────────────────────────────────
 function copyWalletAddress() {
   if (!account) return;
   navigator.clipboard.writeText(account.address).then(() => {
@@ -321,9 +343,9 @@ function copyWalletAddress() {
     setTimeout(() => {
       btn.textContent = currentLang === "es" ? "Copiar" : "Copy";
       btn.classList.remove("copied");
-    }, 2000);
-    showToast("copySuccess", "success", 2000);
-  }).catch(() => showToast("copyFailed", "error"));
+    }, 2500);
+    showToast("copySuccess", "success", 3000);
+  }).catch(() => showToast("copyFailed", "error", 4000));
 }
 
 // ──────────────────────────────────────────────
@@ -375,7 +397,7 @@ async function startDepositMonitoring() {
   lastMaticBalance = await web3.eth.getBalance(account.address);
   lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
 
-  // WebSocket for USDC Transfer events
+  // WebSocket for USDC incoming transfers
   try {
     wsSubscription = tokenContract.events.Transfer({
       filter: { to: account.address },
@@ -387,9 +409,11 @@ async function startDepositMonitoring() {
       refreshBalances();
     })
     .on('error', console.warn);
-  } catch (e) { console.warn("WS failed", e); }
+  } catch (e) {
+    console.warn("WebSocket subscription failed:", e);
+  }
 
-  // Polling fallback for MATIC + safety
+  // Polling fallback for MATIC + safety net
   pollingInterval = setInterval(async () => {
     if (document.getElementById("walletDashboard").style.display !== "block") return;
 
@@ -416,8 +440,14 @@ async function startDepositMonitoring() {
 }
 
 function stopDepositMonitoring() {
-  if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
-  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+  if (wsSubscription) {
+    wsSubscription.unsubscribe();
+    wsSubscription = null;
+  }
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
   document.getElementById("depositStatus").style.display = "none";
 }
 
@@ -454,62 +484,8 @@ async function refreshBalances(){
   }catch(e){console.error(e);}
 }
 
-// ──────────────────────────────────────────────
-// LIVE RATE
-// ──────────────────────────────────────────────
-let currentUsdtArsRate = 1400;
-let isFetchingRate = false;
-
-async function fetchUsdtArsRate() {
-  if (isFetchingRate) return;
-  isFetchingRate = true;
-  const noticeEl = document.getElementById("rateNotice");
-  const btn = document.getElementById("refreshRateBtn");
-  const originalBtnText = btn.innerHTML;
-
-  btn.disabled = true;
-  btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;"></div> Actualizando...`;
-
-  try {
-    const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=ars");
-    if (!response.ok) throw new Error("Network response was not ok");
-    const data = await response.json();
-    const rate = data.tether.ars;
-    if (typeof rate !== 'number' || rate <= 0) throw new Error("Invalid rate");
-    
-    currentUsdtArsRate = rate;
-    const roundedRate = Math.round(rate);
-    noticeEl.innerHTML = currentLang === "es"
-      ? `Tasa en vivo (CoinGecko): <strong>1 USDC ≈ ${roundedRate} ARS</strong><br><small>Actualizado ahora – puede variar</small>`
-      : `Live rate (CoinGecko): <strong>1 USDC ≈ ${roundedRate} ARS</strong><br><small>Updated now – may vary</small>`;
-    
-    updateUsdcFromArs();
-    showToast("Tasa actualizada","success",3000);
-  } catch (e) {
-    noticeEl.innerHTML = currentLang === "es"
-      ? `No se pudo obtener tasa – usando aproximado <strong>1 USDC ≈ 1400 ARS</strong>`
-      : `Could not fetch rate – using approx <strong>1 USDC ≈ 1400 ARS</strong>`;
-    showToast("No se pudo actualizar la tasa","warning");
-  } finally {
-    isFetchingRate = false;
-    btn.disabled = false;
-    btn.innerHTML = originalBtnText;
-  }
-}
-
-const requestArsInput = document.getElementById("requestAmountArs");
-const requestUsdcInput = document.getElementById("requestAmount");
-
-function updateUsdcFromArs() {
-  const ars = parseFloat(requestArsInput.value) || 0;
-  const usdcVal = ars / currentUsdtArsRate;
-  requestUsdcInput.value = usdcVal.toFixed(2);
-}
-
-requestArsInput.addEventListener("input", updateUsdcFromArs);
-
 function generateRequestQR(){
-  const amt = parseFloat(requestUsdcInput.value) || 0;
+  const amt = parseFloat(document.getElementById("requestAmount").value) || 0;
   let uri=`polygon:${TOKEN_ADDRESS}@${CHAIN_ID}/transfer?address=${account.address}`;
   if(amt>0){const wei=toTokenUnits(amt.toString());uri+=`&uint256=${wei}`;}
   document.getElementById("qrcode").innerHTML="";
@@ -517,9 +493,6 @@ function generateRequestQR(){
   showToast("qrGenerated","info");
 }
 
-// ──────────────────────────────────────────────
-// SEND USDC
-// ──────────────────────────────────────────────
 async function sendUSDT() {
   if (!account || !paymentRecipient || !hasScannedPayment) { showToast("scanFirst", "error"); return; }
   let amt = parseFloat(document.getElementById("sendAmount").value);
@@ -539,26 +512,27 @@ async function sendUSDT() {
     await web3.eth.sendSignedTransaction(signed.rawTransaction);
 
     statusEl.className = "status success";
-    msgEl.textContent = "✅ Payment sent!";
-    showToast("txSuccess", "success");
+    msgEl.textContent = translations[currentLang].txSuccessLong || "Transaction successful!";
+    showToast("txSuccessLong", "success");
 
     setTimeout(() => {
       statusEl.style.display = "none";
       statusEl.className = "status waiting";
       resetSendScreen();
-    }, 4200);
+    }, 6000);
 
     refreshBalances();
+
   } catch(e) {
     msgEl.textContent = "Failed";
     statusEl.className = "status waiting";
-    showToast("txFailed" + (e.message ? ": " + e.message : ""), "error");
-    setTimeout(() => { statusEl.style.display = "none"; }, 5200);
+    showToast("txFailed" + (e.message ? " " + e.message : ""), "error", 12000);
+    setTimeout(() => { statusEl.style.display = "none"; }, 8000);
   }
 }
 
 // ──────────────────────────────────────────────
-// DEPOSIT QR + SCANNER
+// QR Scanner + Deposit QR
 // ──────────────────────────────────────────────
 function generateDepositQR(){
   if(!account)return;
@@ -598,7 +572,7 @@ function handleScanned(data){
     document.getElementById("sendTo").value=shortenAddress(address);
     if(amount&&amount>0)document.getElementById("sendAmount").value=amount;
     document.getElementById("sendButton").disabled=false;
-    showToast("qrScanned","success");
+    showToast("qrScannedLong","success");
   }else{showToast("qrInvalid","error");}
 }
 function resetSendScreen(){hasScannedPayment=false;paymentRecipient="";document.getElementById("sendTo").value="";document.getElementById("sendAmount").value="";document.getElementById("sendButton").disabled=true;}
@@ -611,7 +585,7 @@ function openTab(name){
 }
 
 // ──────────────────────────────────────────────
-// Init
+// Init + Cleanup
 // ──────────────────────────────────────────────
 window.addEventListener("load",()=>{
   refreshLanguageUI();
