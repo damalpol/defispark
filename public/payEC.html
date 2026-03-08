@@ -119,12 +119,12 @@
       <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none;background:var(--danger);">Stop Scanner</button>
 
       <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
-      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)"></div>
+      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)" readonly></div>
       <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Processing transaction...</span></div>
     </div>
 
-    <!-- REQUEST TAB (updated with breakdown) -->
+    <!-- REQUEST TAB -->
     <div id="request" class="tab-content active">
       <div class="scan-hint" id="requestHint">Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong></div>
       
@@ -153,7 +153,7 @@
           <span>Descuento 3%:</span> <strong id="discountUsdc">—</strong>
         </div>
         <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0; color:var(--warning);">
-          <span>Fee 0.5%:</span> <strong id="feeUsdc">—</strong>
+          <span>Fee 0.5% (plataforma):</span> <strong id="feeUsdc">—</strong>
         </div>
         <div style="width:100%; height:1px; background:var(--border); margin:8px 0;"></div>
         <div style="width:100%; display:flex; justify-content:space-between; font-size:15px; font-weight:700;">
@@ -356,29 +356,45 @@ function copyWalletAddress() {
 // NETWORK & TOKEN CONFIG
 // ──────────────────────────────────────────────
 const TOKEN_ADDRESS = "0xf2BABBC04f3EcADf2e8D3c4796F1AFD3AC125883";
+const PROCESSOR_ADDRESS = "0x1eFa181Cc91d1744d71aa7596d68fc5a06af8373";   // ← YOUR DEPLOYED CONTRACT
 const CHAIN_ID = "80002";
 const RPC_HTTP = "https://rpc-amoy.polygon.technology/";
-const RPC_WS   = "wss://polygon-amoy-bor-rpc.publicnode.com";
 
 const web3 = new Web3(RPC_HTTP);
-const web3Ws = new Web3(RPC_WS);
 
 const tokenContract = new web3.eth.Contract([
   {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
   {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
+  {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
   {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}
 ], TOKEN_ADDRESS);
+
+// PAYMENT PROCESSOR CONTRACT (only the function we need)
+const processorContract = new web3.eth.Contract([
+  {
+    "inputs": [
+      {"name":"seller","type":"address"},
+      {"name":"baseAmount","type":"uint256"}
+    ],
+    "name":"payMerchant",
+    "outputs": [],
+    "stateMutability":"nonpayable",
+    "type":"function"
+  }
+], PROCESSOR_ADDRESS);
 
 let account = null;
 let paymentRecipient = "";
 let hasScannedPayment = false;
 let lastMaticBalance = "0";
 let lastUsdcBalance = "0";
-let wsSubscription = null;
 let pollingInterval = null;
 
 // Rate (ARS per 1 USDC)
 let usdcArsRate = null;
+
+// Global for contract call (base amount from QR)
+let currentBaseAmount = null;
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -394,7 +410,7 @@ function toTokenUnits(amountStr) {
 }
 
 // ──────────────────────────────────────────────
-// Rate Fetch & Conversion (improved)
+// Rate Fetch & Conversion
 // ──────────────────────────────────────────────
 async function fetchUsdtArsRate() {
   const notice = document.getElementById("rateNotice");
@@ -403,15 +419,11 @@ async function fetchUsdtArsRate() {
 
   try {
     let rate = null;
-
-    // Primary: CoinGecko (most reliable for USDC)
     try {
       const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=ars");
       const data = await res.json();
       rate = data["usd-coin"]?.ars;
     } catch {}
-
-    // Fallbacks
     if (!rate) {
       try {
         const res = await fetch("https://api.exchangerate.host/convert?from=USD&to=ARS");
@@ -426,7 +438,6 @@ async function fetchUsdtArsRate() {
     notice.innerHTML = `1 USDC ≈ <strong>${rate.toFixed(0)} ARS</strong> <small>(actualizado)</small>`;
     notice.style.color = "var(--success)";
 
-    // Sync fields if one has value
     if (document.getElementById("requestAmount").value) updateArsFromUsdc();
     else if (document.getElementById("requestAmountArs").value) updateUsdcFromArs();
   } catch (e) {
@@ -477,34 +488,16 @@ function updatePaymentDetails() {
 }
 
 // ──────────────────────────────────────────────
-// Deposit Monitoring
+// Deposit Monitoring (unchanged)
 // ──────────────────────────────────────────────
 async function startDepositMonitoring() {
   if (!account) return;
-
   document.getElementById("depositStatus").style.display = "flex";
-
   lastMaticBalance = await web3.eth.getBalance(account.address);
   lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
 
-  try {
-    wsSubscription = tokenContract.events.Transfer({
-      filter: { to: account.address },
-      fromBlock: 'latest'
-    })
-    .on('data', (event) => {
-      const amount = fromTokenUnits(event.returnValues.value);
-      showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", amount)}`, "success");
-      refreshBalances();
-    })
-    .on('error', console.warn);
-  } catch (e) {
-    console.warn("WebSocket failed:", e);
-  }
-
   pollingInterval = setInterval(async () => {
     if (document.getElementById("walletDashboard").style.display !== "block") return;
-
     try {
       const currentMatic = await web3.eth.getBalance(account.address);
       const currentUsdc  = await tokenContract.methods.balanceOf(account.address).call();
@@ -528,7 +521,6 @@ async function startDepositMonitoring() {
 }
 
 function stopDepositMonitoring() {
-  if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
   if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
   document.getElementById("depositStatus").style.display = "none";
 }
@@ -566,6 +558,9 @@ async function refreshBalances(){
   }catch(e){console.error(e);}
 }
 
+// ──────────────────────────────────────────────
+// REQUEST QR (NEW FORMAT: seller + baseAmount)
+// ──────────────────────────────────────────────
 function generateRequestQR(){
   const baseAmt = parseFloat(document.getElementById("requestAmount").value) || 0;
   if (baseAmt <= 0) {
@@ -573,24 +568,16 @@ function generateRequestQR(){
     return;
   }
 
-  const discount = baseAmt * 0.03;
-  const afterDiscount = baseAmt - discount;
-  const fee = afterDiscount * 0.005;
-  const totalAmt = afterDiscount + fee;
-
   updatePaymentDetails();
 
-  let uri = `polygon:${TOKEN_ADDRESS}@${CHAIN_ID}/transfer?address=${account.address}`;
-  if (totalAmt > 0) {
-    const wei = toTokenUnits(totalAmt.toFixed(6));
-    uri += `&uint256=${wei}`;
-  }
+  // NEW QR: defispark:pay?seller=...&base=...
+  const qrData = `defispark:pay?seller=${account.address}&base=${baseAmt.toFixed(6)}`;
 
   document.getElementById("qrcode").innerHTML = "";
   new QRCodeStyling({
     width: 280,
     height: 280,
-    data: uri,
+    data: qrData,
     margin: 8,
     qrOptions: { errorCorrectionLevel: "H" },
     dotsOptions: { color: "#8b5cf6", type: "rounded" },
@@ -626,25 +613,53 @@ function scan(){
   const code=jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
   if(code){handleScanned(code.data);stopQRScanner();}else{requestAnimationFrame(scan);}
 }
+
 function handleScanned(data){
-  let address=null,amount=null;
-  try{
-    const url=new URL(data.startsWith("polygon:")?data.replace(/^polygon:/i,"https://dummy/"):"https://dummy/?"+data);
-    address=url.searchParams.get("address");
-    const weiStr=url.searchParams.get("uint256")||url.searchParams.get("value");
-    if(weiStr)amount=Number(fromTokenUnits(weiStr));
-  }catch(e){}
-  if(!address&&data.match(/^0x[a-fA-F0-9]{40}$/))address=data;
-  else if(!address&&data.includes("0x")){const match=data.match(/0x[a-fA-F0-9]{40}/i);if(match)address=match[0];}
-  if(address){
-    paymentRecipient=address;hasScannedPayment=true;
-    document.getElementById("sendTo").value=shortenAddress(address);
-    if(amount&&amount>0)document.getElementById("sendAmount").value=amount;
-    document.getElementById("sendButton").disabled=false;
+  let seller = null;
+  let baseAmount = null;
+
+  try {
+    if (data.startsWith("defispark:pay?")) {
+      const url = new URL(data.replace("defispark:", "https://dummy/"));
+      seller = url.searchParams.get("seller");
+      baseAmount = parseFloat(url.searchParams.get("base"));
+    } else if (data.match(/^0x[a-fA-F0-9]{40}$/)) {
+      seller = data;
+    }
+  } catch(e){}
+
+  if (seller) {
+    paymentRecipient = seller;
+    hasScannedPayment = true;
+    document.getElementById("sendTo").value = shortenAddress(seller);
+
+    if (baseAmount && baseAmount > 0) {
+      // Calculate TOTAL the buyer must pay
+      const discount = baseAmount * 0.03;
+      const afterDiscount = baseAmount - discount;
+      const fee = afterDiscount * 0.005;
+      const total = afterDiscount + fee;
+
+      document.getElementById("sendAmount").value = total.toFixed(4);
+      currentBaseAmount = baseAmount;   // saved for smart contract
+    }
+
+    document.getElementById("sendButton").disabled = false;
     showToast("qrScannedLong","success");
-  }else{showToast("qrInvalid","error");}
+  } else {
+    showToast("qrInvalid","error");
+  }
 }
-function resetSendScreen(){hasScannedPayment=false;paymentRecipient="";document.getElementById("sendTo").value="";document.getElementById("sendAmount").value="";document.getElementById("sendButton").disabled=true;}
+
+function resetSendScreen(){
+  hasScannedPayment = false;
+  paymentRecipient = "";
+  currentBaseAmount = null;
+  document.getElementById("sendTo").value = "";
+  document.getElementById("sendAmount").value = "";
+  document.getElementById("sendButton").disabled = true;
+}
+
 function openTab(name){
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"));
@@ -654,7 +669,50 @@ function openTab(name){
 }
 
 // ──────────────────────────────────────────────
-// Event Listeners for conversion
+// SMART CONTRACT SEND (ONE CLICK: buyer pays TOTAL)
+// ──────────────────────────────────────────────
+async function sendUSDT() {
+  if (!account || !hasScannedPayment || !currentBaseAmount) {
+    showToast("scanFirst", "error");
+    return;
+  }
+
+  const baseAmount = currentBaseAmount;
+  const button = document.getElementById("sendButton");
+  const status = document.getElementById("sendStatus");
+  const msg = document.getElementById("sendMsg");
+
+  button.disabled = true;
+  status.style.display = "flex";
+  msg.textContent = currentLang === "es" ? "Procesando pago (vendedor + 0.5% fee)..." : "Processing payment (seller + 0.5% fee)...";
+
+  try {
+    const baseUnits = BigInt(toTokenUnits(baseAmount.toFixed(6)));
+
+    // 1. Approve processor contract
+    await tokenContract.methods.approve(PROCESSOR_ADDRESS, baseUnits * 2n)
+      .send({ from: account.address });
+
+    // 2. Call payMerchant → contract splits automatically
+    await processorContract.methods.payMerchant(paymentRecipient, baseUnits)
+      .send({ from: account.address });
+
+    showToast("txSuccessLong", "success");
+    resetSendScreen();
+    refreshBalances();
+
+  } catch (err) {
+    console.error(err);
+    showToast("txFailed", "error");
+    msg.textContent = currentLang === "es" ? "Error: " + err.message : "Error: " + err.message;
+  } finally {
+    button.disabled = false;
+    status.style.display = "none";
+  }
+}
+
+// ──────────────────────────────────────────────
+// Event Listeners
 // ──────────────────────────────────────────────
 document.getElementById("requestAmount").addEventListener("input", updateArsFromUsdc);
 document.getElementById("requestAmountArs").addEventListener("input", updateUsdcFromArs);
