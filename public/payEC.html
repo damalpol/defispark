@@ -119,12 +119,12 @@
       <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none;background:var(--danger);">Stop Scanner</button>
 
       <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
-      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount"  placeholder="0.00 (scan QR to fill)"></div>
+      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)"></div>
       <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Processing transaction...</span></div>
     </div>
 
-    <!-- REQUEST TAB -->
+    <!-- REQUEST TAB (updated with breakdown) -->
     <div id="request" class="tab-content active">
       <div class="scan-hint" id="requestHint">Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong></div>
       
@@ -135,14 +135,31 @@
 
       <div class="rate-section">
         <div class="rate-notice" id="rateNotice">Cargando tasa en vivo...</div>
-        <button id="refreshRateBtn" class="refresh-rate-btn" onclick="fetchUsdtArsRate()">
-          ↻ Actualizar
-        </button>
+        <button id="refreshRateBtn" class="refresh-rate-btn" onclick="fetchUsdtArsRate()">↻ Actualizar</button>
       </div>
 
       <div class="input-group">
-        <label id="requestAmountLabel">Monto equivalente en USDC</label>
+        <label id="requestAmountLabel">Monto base en USDC</label>
         <input type="number" id="requestAmount" placeholder="ej. 100" step="0.01" min="0.01">
+      </div>
+
+      <!-- Payment breakdown -->
+      <div id="paymentDetails" class="status" style="display:none; flex-direction:column; align-items:flex-start; text-align:left; background:rgba(139,92,246,0.08); border:1px solid var(--primary); margin:12px 0; padding:14px; border-radius:16px;">
+        <div style="width:100%; margin-bottom:8px; font-weight:600;">Detalle del pago:</div>
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0;">
+          <span>Monto base USDC:</span> <strong id="baseUsdc">—</strong>
+        </div>
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0; color:var(--success);">
+          <span>Descuento 3%:</span> <strong id="discountUsdc">—</strong>
+        </div>
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0; color:var(--warning);">
+          <span>Fee 0.5%:</span> <strong id="feeUsdc">—</strong>
+        </div>
+        <div style="width:100%; height:1px; background:var(--border); margin:8px 0;"></div>
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:15px; font-weight:700;">
+          <span>Total a pagar (USDC):</span> <strong id="totalUsdc" style="color:var(--primary);">—</strong>
+        </div>
+        <small style="margin-top:8px; color:var(--text-secondary);">El comprador transfiere esta cantidad • Recibes ≈ monto base (menos gas mínimo)</small>
       </div>
 
       <button class="main-btn" id="generateQRBtn" onclick="generateRequestQR()">Generar QR de Pago</button>
@@ -193,8 +210,8 @@ const translations = {
     sendButton:"Send USDC Now", sendMsg:"Processing transaction...",
     requestHint:"Enter amount in ARS or USDC → Generate QR<br><strong>Seller view – buyers scan to pay you</strong>",
     requestAmountArsLabel:"Amount in ARS (Argentine Pesos)",
-    requestAmountLabel:"Equivalent Amount in USDC", generateQRBtn:"Generate Payment QR",
-    depositHint:"Share this QR code or address to receive<br><strong>MATIC or USDC (testnet) on Amoy</strong>",
+    requestAmountLabel:"Base Amount in USDC", generateQRBtn:"Generate Payment QR",
+    depositHint:"Share this QR or address to receive<br><strong>MATIC or USDC (testnet) on Amoy</strong>",
     important:"Important:", depositWarning:"• Only send MATIC or tokens on Amoy testnet<br>• Sending from other networks = permanent loss<br>• Need some test MATIC for gas",
     refreshDepositBtn:"Refresh Deposit QR",
     newWallet:"New wallet created successfully", invalidPkFormat:"Invalid private key format (must start with 0x and be 66 chars)",
@@ -213,12 +230,12 @@ const translations = {
     title:"Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
     pkLabel:"Clave Privada (hex) o Generar Nueva", createBtn:"Crear Nueva Billetera", importBtn:"Importar Billetera Existente",
     refreshBtn:"Actualizar", tabSend:"↑ Enviar", tabRequest:"💰 Solicitar", tabDeposit:"↓ Depositar",
-    sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga con USDC</strong>",
+    sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga o envia USDC</strong>",
     scanBtn:"📷 Escanear QR", recipientLabel:"Dirección del Destinatario", amountLabel:"Cantidad (USDC)",
     sendButton:"Enviar USDC Ahora", sendMsg:"Procesando transacción...",
     requestHint:"Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong>",
     requestAmountArsLabel:"Monto en ARS (Pesos Argentinos)",
-    requestAmountLabel:"Monto equivalente en USDC", generateQRBtn:"Generar QR de Pago",
+    requestAmountLabel:"Monto base en USDC", generateQRBtn:"Generar QR de Pago",
     depositHint:"Comparte este QR o dirección para recibir<br><strong>MATIC o USDC (testnet) en Amoy</strong>",
     important:"Importante:", depositWarning:"• Solo envía MATIC o tokens en Amoy testnet<br>• Enviar desde otras redes = pérdida permanente<br>• Necesitas MATIC de testnet para gas",
     refreshDepositBtn:"Actualizar QR de Depósito",
@@ -289,7 +306,7 @@ function toggleTheme() {
 }
 
 // ──────────────────────────────────────────────
-// Improved Toast – longer duration + slower fade
+// Toast
 // ──────────────────────────────────────────────
 function showToast(key, type = "info", forcedDuration = null) {
   const msg = translations[currentLang][key] || key;
@@ -300,33 +317,20 @@ function showToast(key, type = "info", forcedDuration = null) {
   toast.innerHTML = `${icon} ${msg}`;
   container.appendChild(toast);
 
-  // Click to dismiss early
   toast.style.cursor = "pointer";
   toast.addEventListener("click", () => {
     toast.style.animation = "toastOut 0.6s ease forwards";
     setTimeout(() => toast.remove(), 600);
   });
 
-  // Duration logic – much longer for deposit & tx success
-  let visibleMs;
-  if (forcedDuration !== null) {
-    visibleMs = forcedDuration;
-  } else if (key.includes("deposit") || key === "txSuccess" || key === "txSuccessLong") {
-    visibleMs = 15000;  // 15 seconds for deposit/tx success
-  } else if (type === "success" || type === "error") {
-    visibleMs = 10000;  // 10 seconds
-  } else if (type === "warning") {
-    visibleMs = 9000;
-  } else {
-    visibleMs = 7000;
-  }
+  let visibleMs = forcedDuration !== null ? forcedDuration :
+    (key.includes("deposit") || key === "txSuccess" || key === "txSuccessLong") ? 15000 :
+    (type === "success" || type === "error") ? 10000 :
+    type === "warning" ? 9000 : 7000;
 
-  // Start fade after visible time
   setTimeout(() => {
-    toast.style.animation = "toastOut 1.2s ease forwards"; // slower fade = more readable
-    setTimeout(() => {
-      if (toast.parentNode) toast.remove();
-    }, 1200);
+    toast.style.animation = "toastOut 1.2s ease forwards";
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 1200);
   }, visibleMs);
 }
 
@@ -373,6 +377,9 @@ let lastUsdcBalance = "0";
 let wsSubscription = null;
 let pollingInterval = null;
 
+// Rate (ARS per 1 USDC)
+let usdcArsRate = null;
+
 // ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
@@ -387,6 +394,89 @@ function toTokenUnits(amountStr) {
 }
 
 // ──────────────────────────────────────────────
+// Rate Fetch & Conversion (improved)
+// ──────────────────────────────────────────────
+async function fetchUsdtArsRate() {
+  const notice = document.getElementById("rateNotice");
+  notice.textContent = currentLang === "es" ? "Cargando tasa..." : "Loading rate...";
+  notice.style.color = "var(--warning)";
+
+  try {
+    let rate = null;
+
+    // Primary: CoinGecko (most reliable for USDC)
+    try {
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=ars");
+      const data = await res.json();
+      rate = data["usd-coin"]?.ars;
+    } catch {}
+
+    // Fallbacks
+    if (!rate) {
+      try {
+        const res = await fetch("https://api.exchangerate.host/convert?from=USD&to=ARS");
+        const data = await res.json();
+        rate = data.result;
+      } catch {}
+    }
+
+    if (!rate || rate < 1000 || rate > 2000) throw new Error("Invalid rate");
+
+    usdcArsRate = rate;
+    notice.innerHTML = `1 USDC ≈ <strong>${rate.toFixed(0)} ARS</strong> <small>(actualizado)</small>`;
+    notice.style.color = "var(--success)";
+
+    // Sync fields if one has value
+    if (document.getElementById("requestAmount").value) updateArsFromUsdc();
+    else if (document.getElementById("requestAmountArs").value) updateUsdcFromArs();
+  } catch (e) {
+    console.warn(e);
+    notice.textContent = currentLang === "es" ? "Error al cargar tasa – usa manual" : "Failed to load rate – use manual";
+    notice.style.color = "var(--danger)";
+  }
+}
+
+function updateArsFromUsdc() {
+  if (!usdcArsRate) return;
+  const usdc = parseFloat(document.getElementById("requestAmount").value) || 0;
+  if (usdc > 0) {
+    document.getElementById("requestAmountArs").value = Math.round(usdc * usdcArsRate);
+  }
+  updatePaymentDetails();
+}
+
+function updateUsdcFromArs() {
+  if (!usdcArsRate) return;
+  const ars = parseFloat(document.getElementById("requestAmountArs").value) || 0;
+  if (ars > 0) {
+    document.getElementById("requestAmount").value = (ars / usdcArsRate).toFixed(4);
+  }
+  updatePaymentDetails();
+}
+
+function updatePaymentDetails() {
+  const base = parseFloat(document.getElementById("requestAmount").value) || 0;
+  const detailsEl = document.getElementById("paymentDetails");
+
+  if (base <= 0) {
+    detailsEl.style.display = "none";
+    return;
+  }
+
+  const discount = base * 0.03;
+  const afterDiscount = base - discount;
+  const fee = afterDiscount * 0.005;
+  const total = afterDiscount + fee;
+
+  document.getElementById("baseUsdc").textContent = base.toFixed(4) + " USDC";
+  document.getElementById("discountUsdc").textContent = "-" + discount.toFixed(4) + " USDC";
+  document.getElementById("feeUsdc").textContent = "+" + fee.toFixed(4) + " USDC";
+  document.getElementById("totalUsdc").textContent = total.toFixed(4) + " USDC";
+
+  detailsEl.style.display = "flex";
+}
+
+// ──────────────────────────────────────────────
 // Deposit Monitoring
 // ──────────────────────────────────────────────
 async function startDepositMonitoring() {
@@ -397,7 +487,6 @@ async function startDepositMonitoring() {
   lastMaticBalance = await web3.eth.getBalance(account.address);
   lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
 
-  // WebSocket for USDC incoming transfers
   try {
     wsSubscription = tokenContract.events.Transfer({
       filter: { to: account.address },
@@ -410,10 +499,9 @@ async function startDepositMonitoring() {
     })
     .on('error', console.warn);
   } catch (e) {
-    console.warn("WebSocket subscription failed:", e);
+    console.warn("WebSocket failed:", e);
   }
 
-  // Polling fallback for MATIC + safety net
   pollingInterval = setInterval(async () => {
     if (document.getElementById("walletDashboard").style.display !== "block") return;
 
@@ -440,14 +528,8 @@ async function startDepositMonitoring() {
 }
 
 function stopDepositMonitoring() {
-  if (wsSubscription) {
-    wsSubscription.unsubscribe();
-    wsSubscription = null;
-  }
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
+  if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
   document.getElementById("depositStatus").style.display = "none";
 }
 
@@ -485,50 +567,37 @@ async function refreshBalances(){
 }
 
 function generateRequestQR(){
-  const amt = parseFloat(document.getElementById("requestAmount").value) || 0;
-  let uri=`polygon:${TOKEN_ADDRESS}@${CHAIN_ID}/transfer?address=${account.address}`;
-  if(amt>0){const wei=toTokenUnits(amt.toString());uri+=`&uint256=${wei}`;}
-  document.getElementById("qrcode").innerHTML="";
-  new QRCodeStyling({width:280,height:280,data:uri,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#8b5cf6",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("qrcode"));
-  showToast("qrGenerated","info");
-}
-
-async function sendUSDT() {
-  if (!account || !paymentRecipient || !hasScannedPayment) { showToast("scanFirst", "error"); return; }
-  let amt = parseFloat(document.getElementById("sendAmount").value);
-  if (isNaN(amt) || amt <= 0) { showToast("invalidAmount", "error"); return; }
-
-  const statusEl = document.getElementById("sendStatus");
-  const msgEl = document.getElementById("sendMsg");
-  statusEl.style.display = "flex";
-
-  try {
-    const amountWei = toTokenUnits(amt.toString());
-    const gasPrice = await web3.eth.getGasPrice();
-    const data = tokenContract.methods.transfer(paymentRecipient, amountWei).encodeABI();
-    const gas = await tokenContract.methods.transfer(paymentRecipient, amountWei).estimateGas({from: account.address});
-    const tx = { from: account.address, to: TOKEN_ADDRESS, gas, gasPrice, data };
-    const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
-    await web3.eth.sendSignedTransaction(signed.rawTransaction);
-
-    statusEl.className = "status success";
-    msgEl.textContent = translations[currentLang].txSuccessLong || "Transaction successful!";
-    showToast("txSuccessLong", "success");
-
-    setTimeout(() => {
-      statusEl.style.display = "none";
-      statusEl.className = "status waiting";
-      resetSendScreen();
-    }, 6000);
-
-    refreshBalances();
-
-  } catch(e) {
-    msgEl.textContent = "Failed";
-    statusEl.className = "status waiting";
-    showToast("txFailed" + (e.message ? " " + e.message : ""), "error", 12000);
-    setTimeout(() => { statusEl.style.display = "none"; }, 8000);
+  const baseAmt = parseFloat(document.getElementById("requestAmount").value) || 0;
+  if (baseAmt <= 0) {
+    showToast("invalidAmount", "error");
+    return;
   }
+
+  const discount = baseAmt * 0.03;
+  const afterDiscount = baseAmt - discount;
+  const fee = afterDiscount * 0.005;
+  const totalAmt = afterDiscount + fee;
+
+  updatePaymentDetails();
+
+  let uri = `polygon:${TOKEN_ADDRESS}@${CHAIN_ID}/transfer?address=${account.address}`;
+  if (totalAmt > 0) {
+    const wei = toTokenUnits(totalAmt.toFixed(6));
+    uri += `&uint256=${wei}`;
+  }
+
+  document.getElementById("qrcode").innerHTML = "";
+  new QRCodeStyling({
+    width: 280,
+    height: 280,
+    data: uri,
+    margin: 8,
+    qrOptions: { errorCorrectionLevel: "H" },
+    dotsOptions: { color: "#8b5cf6", type: "rounded" },
+    backgroundOptions: { color: "#ffffff" }
+  }).append(document.getElementById("qrcode"));
+
+  showToast("qrGenerated", "info");
 }
 
 // ──────────────────────────────────────────────
@@ -585,7 +654,13 @@ function openTab(name){
 }
 
 // ──────────────────────────────────────────────
-// Init + Cleanup
+// Event Listeners for conversion
+// ──────────────────────────────────────────────
+document.getElementById("requestAmount").addEventListener("input", updateArsFromUsdc);
+document.getElementById("requestAmountArs").addEventListener("input", updateUsdcFromArs);
+
+// ──────────────────────────────────────────────
+// Init
 // ──────────────────────────────────────────────
 window.addEventListener("load",()=>{
   refreshLanguageUI();
