@@ -542,13 +542,13 @@ function importWallet(){
 
 function saveWallet(){
   if(account){
-    localStorage.setItem("defispark_wallet_pk",account.privateKey);
+    localStorage.setItem("defisparkv2_wallet_pk",account.privateKey);
     console.log("[WALLET] Private key saved to localStorage");
   }
 }
 
 function loadWallet(){
-  const pk = localStorage.getItem("defispark_wallet_pk");
+  const pk = localStorage.getItem("defisparkv2_wallet_pk");
   if(pk){
     try{
       account = web3.eth.accounts.privateKeyToAccount(pk);
