@@ -110,7 +110,7 @@
     <!-- SEND TAB -->
     <div id="send" class="tab-content">
       <div class="scan-section">
-        <div class="scan-text" id="sendHint">Scan a merchant's payment QR code<br><strong>Client view – pay with USDC</strong></div>
+        <div class="scan-text" id="sendHint">Scan a merchant's payment QR code<br><strong>Client view – pay requested amount</strong></div>
         <button class="main-btn scan-btn" onclick="startQRScanner()" id="scanBtn">📷 Scan QR</button>
       </div>
 
@@ -118,15 +118,15 @@
       <div id="scanResult" style="margin:16px 0;color:var(--success);font-weight:600;text-align:center;"></div>
       <button id="stopBtn" class="main-btn" onclick="stopQRScanner()" style="display:none;background:var(--danger);">Stop Scanner</button>
 
-      <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
-      <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)" readonly></div>
+      <div class="input-group"><label id="recipientLabel">Recipient (Seller)</label><input type="text" id="sendTo" readonly placeholder="0x..."></div>
+      <div class="input-group"><label id="amountLabel">Amount to Pay (USDC)</label><input type="number" id="sendAmount" placeholder="0.00" readonly></div>
       <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Waiting for your signature...</span></div>
     </div>
 
     <!-- REQUEST TAB -->
     <div id="request" class="tab-content active">
-      <div class="scan-hint" id="requestHint">Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong></div>
+      <div class="scan-hint" id="requestHint">Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – compradores pagan el monto solicitado</strong></div>
       
       <div class="input-group">
         <label id="requestAmountArsLabel">Monto en ARS (Pesos Argentinos)</label>
@@ -139,27 +139,13 @@
       </div>
 
       <div class="input-group">
-        <label id="requestAmountLabel">Monto base en USDC</label>
+        <label id="requestAmountLabel">Monto en USDC (lo que paga el comprador)</label>
         <input type="number" id="requestAmount" placeholder="ej. 100" step="0.01" min="0.01">
       </div>
 
-      <!-- Payment breakdown -->
-      <div id="paymentDetails" class="status" style="display:none; flex-direction:column; align-items:flex-start; text-align:left; background:rgba(139,92,246,0.08); border:1px solid var(--primary); margin:12px 0; padding:14px; border-radius:16px;">
-        <div style="width:100%; margin-bottom:8px; font-weight:600;">Detalle del pago:</div>
-        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0;">
-          <span>Monto base USDC:</span> <strong id="baseUsdc">—</strong>
-        </div>
-        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0; color:var(--success);">
-          <span>Descuento 3%:</span> <strong id="discountUsdc">—</strong>
-        </div>
-        <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0; color:var(--warning);">
-          <span>Fee 0.5% (plataforma):</span> <strong id="feeUsdc">—</strong>
-        </div>
-        <div style="width:100%; height:1px; background:var(--border); margin:8px 0;"></div>
-        <div style="width:100%; display:flex; justify-content:space-between; font-size:15px; font-weight:700;">
-          <span>Total a pagar (USDC):</span> <strong id="totalUsdc" style="color:var(--primary);">—</strong>
-        </div>
-        <small style="margin-top:8px; color:var(--text-secondary);">El comprador transfiere esta cantidad • Recibes ≈ monto base (menos gas mínimo)</small>
+      <div class="status" style="background:rgba(139,92,246,0.08); border:1px solid var(--primary); margin:12px 0; padding:14px; border-radius:16px; text-align:center;">
+        <strong>Nota:</strong> El comprador paga exactamente este monto.<br>
+        Plataforma recibe 0.5% automáticamente.
       </div>
 
       <button class="main-btn" id="generateQRBtn" onclick="generateRequestQR()">Generar QR de Pago</button>
@@ -195,9 +181,7 @@
 <div id="toastContainer"></div>
 
 <script>
-// ──────────────────────────────────────────────
 // LANGUAGE SYSTEM
-// ──────────────────────────────────────────────
 let currentLang = localStorage.getItem("lang") || "en";
 
 const translations = {
@@ -205,12 +189,12 @@ const translations = {
     title:"Wallet", subtitle:"USDC & MATIC on Polygon Amoy Testnet • Scan to Pay",
     pkLabel:"Private Key (hex) or Generate New", createBtn:"Create New Wallet", importBtn:"Import Existing Wallet",
     refreshBtn:"Refresh", tabSend:"↑ Send", tabRequest:"💰 Request", tabDeposit:"↓ Deposit",
-    sendHint:"Scan a merchant's payment QR code<br><strong>Client view – pay with USDC</strong>",
-    scanBtn:"📷 Scan QR", recipientLabel:"Recipient Address", amountLabel:"Amount (USDC)",
-    sendButton:"Send USDC Now", sendMsg:"Processing transaction...",
-    requestHint:"Enter amount in ARS or USDC → Generate QR<br><strong>Seller view – buyers scan to pay you</strong>",
+    sendHint:"Scan a merchant's payment QR code<br><strong>Client view – pay requested amount</strong>",
+    scanBtn:"📷 Scan QR", recipientLabel:"Recipient (Seller)", amountLabel:"Amount to Pay (USDC)",
+    sendButton:"Send USDC Now", sendMsg:"Waiting for your signature...",
+    requestHint:"Enter amount in ARS or USDC → Generate QR<br><strong>Seller view – buyers pay requested amount</strong>",
     requestAmountArsLabel:"Amount in ARS (Argentine Pesos)",
-    requestAmountLabel:"Base Amount in USDC", generateQRBtn:"Generate Payment QR",
+    requestAmountLabel:"Amount in USDC (what buyer pays)", generateQRBtn:"Generate Payment QR",
     depositHint:"Share this QR or address to receive<br><strong>MATIC or USDC (testnet) on Amoy</strong>",
     important:"Important:", depositWarning:"• Only send MATIC or tokens on Amoy testnet<br>• Sending from other networks = permanent loss<br>• Need some test MATIC for gas",
     refreshDepositBtn:"Refresh Deposit QR",
@@ -230,12 +214,12 @@ const translations = {
     title:"Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
     pkLabel:"Clave Privada (hex) o Generar Nueva", createBtn:"Crear Nueva Billetera", importBtn:"Importar Billetera Existente",
     refreshBtn:"Actualizar", tabSend:"↑ Enviar", tabRequest:"💰 Solicitar", tabDeposit:"↓ Depositar",
-    sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga o envia USDC</strong>",
-    scanBtn:"📷 Escanear QR", recipientLabel:"Dirección del Destinatario", amountLabel:"Cantidad (USDC)",
-    sendButton:"Enviar USDC Ahora", sendMsg:"Procesando transacción...",
-    requestHint:"Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong>",
+    sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga el monto solicitado</strong>",
+    scanBtn:"📷 Escanear QR", recipientLabel:"Destinatario (Vendedor)", amountLabel:"Monto a Pagar (USDC)",
+    sendButton:"Enviar USDC Ahora", sendMsg:"Esperando tu firma...",
+    requestHint:"Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – compradores pagan el monto solicitado</strong>",
     requestAmountArsLabel:"Monto en ARS (Pesos Argentinos)",
-    requestAmountLabel:"Monto base en USDC", generateQRBtn:"Generar QR de Pago",
+    requestAmountLabel:"Monto en USDC (lo que paga el comprador)", generateQRBtn:"Generar QR de Pago",
     depositHint:"Comparte este QR o dirección para recibir<br><strong>MATIC o USDC (testnet) en Amoy</strong>",
     important:"Importante:", depositWarning:"• Solo envía MATIC o tokens en Amoy testnet<br>• Enviar desde otras redes = pérdida permanente<br>• Necesitas MATIC de testnet para gas",
     refreshDepositBtn:"Actualizar QR de Depósito",
@@ -295,9 +279,6 @@ function refreshLanguageUI() {
   document.getElementById("langEs").classList.toggle("active", currentLang === "es");
 }
 
-// ──────────────────────────────────────────────
-// Theme Toggle
-// ──────────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute("data-theme");
@@ -305,9 +286,6 @@ function toggleTheme() {
   document.querySelector(".theme-toggle").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
-// ──────────────────────────────────────────────
-// Toast
-// ──────────────────────────────────────────────
 function showToast(key, type = "info", forcedDuration = null) {
   const msg = translations[currentLang][key] || key;
   const container = document.getElementById("toastContainer");
@@ -334,14 +312,12 @@ function showToast(key, type = "info", forcedDuration = null) {
   }, visibleMs);
 }
 
-// ──────────────────────────────────────────────
-// Copy Address
-// ──────────────────────────────────────────────
 function copyWalletAddress() {
   if (!account) return;
   navigator.clipboard.writeText(account.address).then(() => {
     const btn = document.getElementById("copyAddressBtn");
-    btn.textContent = currentLang === "es" ? "¡Copiado!" : "Copied!";
+    const txt = currentLang === "es" ? "¡Copiado!" : "Copied!";
+    btn.textContent = txt;
     btn.classList.add("copied");
     setTimeout(() => {
       btn.textContent = currentLang === "es" ? "Copiar" : "Copy";
@@ -351,11 +327,9 @@ function copyWalletAddress() {
   }).catch(() => showToast("copyFailed", "error", 4000));
 }
 
-// ──────────────────────────────────────────────
 // NETWORK & TOKEN CONFIG
-// ──────────────────────────────────────────────
 const TOKEN_ADDRESS = "0xf2BABBC04f3EcADf2e8D3c4796F1AFD3AC125883";
-const PROCESSOR_ADDRESS = "0x1eFa181Cc91d1744d71aa7596d68fc5a06af8373";
+const FEE_CONTRACT   = "0x1eFa181Cc91d1744d71aa7596d68fc5a06af8373";
 const CHAIN_ID = "80002";
 const RPC_HTTP = "https://rpc-amoy.polygon.technology/";
 
@@ -363,33 +337,24 @@ const web3 = new Web3(RPC_HTTP);
 
 const tokenContract = new web3.eth.Contract([
   {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
-  {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
-  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
+  {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}
 ], TOKEN_ADDRESS);
 
-const processorContract = new web3.eth.Contract([
-  {
-    "inputs": [{"name":"seller","type":"address"},{"name":"baseAmount","type":"uint256"}],
-    "name":"payMerchant",
-    "outputs": [],
-    "stateMutability":"nonpayable",
-    "type":"function"
-  }
-], PROCESSOR_ADDRESS);
-
 let account = null;
-let paymentRecipient = "";
+let paymentRecipient = "";          // seller address from QR
 let hasScannedPayment = false;
-let currentBaseAmount = null;
+let currentBaseAmount = null;       // requested amount
 let lastMaticBalance = "0";
 let lastUsdcBalance = "0";
 let pollingInterval = null;
 let usdcArsRate = null;
 
-// ──────────────────────────────────────────────
 // Helpers
-// ──────────────────────────────────────────────
-function shortenAddress(addr){if(!addr||addr.length<42)return addr||"";return addr.slice(0,6)+"..."+addr.slice(-4);}
+function shortenAddress(addr){
+  if(!addr || addr.length < 42) return addr || "";
+  return addr.slice(0,6) + "..." + addr.slice(-4);
+}
 
 function fromTokenUnits(value) {
   return Number(web3.utils.fromWei(value, "mwei")).toFixed(2);
@@ -399,9 +364,7 @@ function toTokenUnits(amountStr) {
   return web3.utils.toWei(amountStr, "mwei");
 }
 
-// ──────────────────────────────────────────────
 // Rate Fetch & Conversion
-// ──────────────────────────────────────────────
 async function fetchUsdtArsRate() {
   const notice = document.getElementById("rateNotice");
   notice.textContent = currentLang === "es" ? "Cargando tasa..." : "Loading rate...";
@@ -436,59 +399,47 @@ async function fetchUsdtArsRate() {
 function updateArsFromUsdc() {
   if (!usdcArsRate) return;
   const usdc = parseFloat(document.getElementById("requestAmount").value) || 0;
-  if (usdc > 0) document.getElementById("requestAmountArs").value = Math.round(usdc * usdcArsRate);
-  updatePaymentDetails();
+  if (usdc > 0) {
+    document.getElementById("requestAmountArs").value = Math.round(usdc * usdcArsRate);
+  }
 }
 
 function updateUsdcFromArs() {
   if (!usdcArsRate) return;
   const ars = parseFloat(document.getElementById("requestAmountArs").value) || 0;
-  if (ars > 0) document.getElementById("requestAmount").value = (ars / usdcArsRate).toFixed(4);
-  updatePaymentDetails();
+  if (ars > 0) {
+    document.getElementById("requestAmount").value = (ars / usdcArsRate).toFixed(4);
+  }
 }
 
-function updatePaymentDetails() {
-  const base = parseFloat(document.getElementById("requestAmount").value) || 0;
-  const detailsEl = document.getElementById("paymentDetails");
-  if (base <= 0) { detailsEl.style.display = "none"; return; }
-  const discount = base * 0.03;
-  const afterDiscount = base - discount;
-  const fee = afterDiscount * 0.005;
-  const total = afterDiscount + fee;
-  document.getElementById("baseUsdc").textContent = base.toFixed(4) + " USDC";
-  document.getElementById("discountUsdc").textContent = "-" + discount.toFixed(4) + " USDC";
-  document.getElementById("feeUsdc").textContent = "+" + fee.toFixed(4) + " USDC";
-  document.getElementById("totalUsdc").textContent = total.toFixed(4) + " USDC";
-  detailsEl.style.display = "flex";
-}
-
-// ──────────────────────────────────────────────
 // Deposit Monitoring
-// ──────────────────────────────────────────────
 async function startDepositMonitoring() {
   if (!account) return;
   document.getElementById("depositStatus").style.display = "flex";
   lastMaticBalance = await web3.eth.getBalance(account.address);
-  lastUsdcBalance = await tokenContract.methods.balanceOf(account.address).call();
+  lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
 
   pollingInterval = setInterval(async () => {
     if (document.getElementById("walletDashboard").style.display !== "block") return;
     try {
       const currentMatic = await web3.eth.getBalance(account.address);
-      const currentUsdc = await tokenContract.methods.balanceOf(account.address).call();
+      const currentUsdc  = await tokenContract.methods.balanceOf(account.address).call();
+
       if (currentMatic !== lastMaticBalance && lastMaticBalance !== "0") {
         const diff = Number(web3.utils.fromWei(currentMatic - lastMaticBalance, "ether")).toFixed(4);
-        showToast(translations[currentLang].depositReceived + " " + translations[currentLang].depositMatic.replace("{amount}", diff), "success");
+        showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositMatic.replace("{amount}", diff)}`, "success");
       }
       if (currentUsdc !== lastUsdcBalance && lastUsdcBalance !== "0") {
         const diff = fromTokenUnits(currentUsdc - lastUsdcBalance);
-        showToast(translations[currentLang].depositReceived + " " + translations[currentLang].depositUsdc.replace("{amount}", diff), "success");
+        showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", diff)}`, "success");
       }
+
       lastMaticBalance = currentMatic;
-      lastUsdcBalance = currentUsdc;
+      lastUsdcBalance  = currentUsdc;
+
       document.getElementById("usdtBalance").textContent = fromTokenUnits(currentUsdc);
       document.getElementById("bnbBalance").textContent = Number(web3.utils.fromWei(currentMatic,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
-    } catch(e){}
+    } catch (e) {}
   }, 12000);
 }
 
@@ -497,12 +448,10 @@ function stopDepositMonitoring() {
   document.getElementById("depositStatus").style.display = "none";
 }
 
-// ──────────────────────────────────────────────
-// Wallet Core + FIX: Add private key to wallet so .send() works
-// ──────────────────────────────────────────────
+// Wallet Core
 function generateNewWallet(){
   account = web3.eth.accounts.create();
-  web3.eth.accounts.wallet.add(account.privateKey);   // ← CRITICAL FIX
+  web3.eth.accounts.wallet.add(account.privateKey);
   saveWallet();
   showWallet();
   showToast("newWallet","success");
@@ -511,9 +460,9 @@ function generateNewWallet(){
 function importWallet(){
   const pk = document.getElementById("privateKey").value.trim();
   if(!pk.startsWith("0x") || pk.length !== 66){ showToast("invalidPkFormat","error"); return; }
-  try {
+  try{
     account = web3.eth.accounts.privateKeyToAccount(pk);
-    web3.eth.accounts.wallet.add(account.privateKey);   // ← CRITICAL FIX
+    web3.eth.accounts.wallet.add(account.privateKey);
     saveWallet();
     showWallet();
     showToast("walletImported","success");
@@ -521,11 +470,12 @@ function importWallet(){
 }
 
 function saveWallet(){ if(account) localStorage.setItem("defispark_wallet_pk", account.privateKey); }
+
 function loadWallet(){
   const pk = localStorage.getItem("defispark_wallet_pk");
   if(pk){
     account = web3.eth.accounts.privateKeyToAccount(pk);
-    web3.eth.accounts.wallet.add(account.privateKey);   // ← CRITICAL FIX
+    web3.eth.accounts.wallet.add(account.privateKey);
     showWallet();
   }
 }
@@ -547,52 +497,91 @@ async function refreshBalances(){
     document.getElementById("usdtBalance").textContent = fromTokenUnits(tokenBal);
     const maticBal = await web3.eth.getBalance(account.address);
     document.getElementById("bnbBalance").textContent = Number(web3.utils.fromWei(maticBal,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
-  }catch(e){console.error(e);}
+  } catch(e){ console.error(e); }
 }
 
-// ──────────────────────────────────────────────
-// REQUEST QR (NEW FORMAT)
-// ──────────────────────────────────────────────
+// REQUEST QR
 function generateRequestQR(){
   const baseAmt = parseFloat(document.getElementById("requestAmount").value) || 0;
-  if (baseAmt <= 0) { showToast("invalidAmount", "error"); return; }
-  updatePaymentDetails();
+  if (baseAmt <= 0) {
+    showToast("invalidAmount", "error");
+    return;
+  }
+
   const qrData = `defispark:pay?seller=${account.address}&base=${baseAmt.toFixed(6)}`;
+
   document.getElementById("qrcode").innerHTML = "";
-  new QRCodeStyling({width:280,height:280,data:qrData,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#8b5cf6",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("qrcode"));
+  new QRCodeStyling({
+    width: 280,
+    height: 280,
+    data: qrData,
+    margin: 8,
+    qrOptions: { errorCorrectionLevel: "H" },
+    dotsOptions: { color: "#8b5cf6", type: "rounded" },
+    backgroundOptions: { color: "#ffffff" }
+  }).append(document.getElementById("qrcode"));
+
   showToast("qrGenerated", "info");
 }
 
-// ──────────────────────────────────────────────
-// QR Scanner
-// ──────────────────────────────────────────────
+// QR Scanner + Deposit QR
 function generateDepositQR(){
   if(!account) return;
   document.getElementById("depositQrcode").innerHTML="";
-  new QRCodeStyling({width:280,height:280,data:account.address,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#10b981",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("depositQrcode"));
+  new QRCodeStyling({
+    width:280,height:280,
+    data:account.address,
+    margin:8,
+    qrOptions:{errorCorrectionLevel:"H"},
+    dotsOptions:{color:"#10b981",type:"rounded"},
+    backgroundOptions:{color:"#ffffff"}
+  }).append(document.getElementById("depositQrcode"));
   document.getElementById("walletAddressText").textContent = account.address;
 }
 
-let stream; const video=document.getElementById("video"); const stopBtn=document.getElementById("stopBtn");
+let stream;
+const video = document.getElementById("video");
+const stopBtn = document.getElementById("stopBtn");
+
 async function startQRScanner(){
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    video.srcObject=stream;video.style.display="block";stopBtn.style.display="block";video.play();
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    video.srcObject = stream;
+    video.style.display = "block";
+    stopBtn.style.display = "block";
+    video.play();
     requestAnimationFrame(scan);
-  }catch(e){showToast("cameraError","error");}
+  }catch(e){
+    showToast("cameraError","error");
+  }
 }
-function stopQRScanner(){if(stream)stream.getTracks().forEach(t=>t.stop());video.style.display="none";stopBtn.style.display="none";document.getElementById("scanResult").textContent="";}
+
+function stopQRScanner(){
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  video.style.display = "none";
+  stopBtn.style.display = "none";
+  document.getElementById("scanResult").textContent = "";
+}
+
 function scan(){
-  if(video.videoWidth===0) return requestAnimationFrame(scan);
-  const canvas=document.createElement("canvas");canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  if(video.videoWidth === 0) return requestAnimationFrame(scan);
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
   canvas.getContext("2d").drawImage(video,0,0);
-  const code=jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
-  if(code){handleScanned(code.data);stopQRScanner();}else{requestAnimationFrame(scan);}
+  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  if(code){
+    handleScanned(code.data);
+    stopQRScanner();
+  } else {
+    requestAnimationFrame(scan);
+  }
 }
 
 function handleScanned(data){
   let seller = null;
   let baseAmount = null;
+
   try {
     if (data.startsWith("defispark:pay?")) {
       const url = new URL(data.replace("defispark:", "https://dummy/"));
@@ -601,17 +590,14 @@ function handleScanned(data){
     } else if (data.match(/^0x[a-fA-F0-9]{40}$/)) {
       seller = data;
     }
-  } catch(e){}
+  } catch(e) {}
+
   if (seller) {
     paymentRecipient = seller;
     hasScannedPayment = true;
     document.getElementById("sendTo").value = shortenAddress(seller);
     if (baseAmount && baseAmount > 0) {
-      const discount = baseAmount * 0.03;
-      const afterDiscount = baseAmount - discount;
-      const fee = afterDiscount * 0.005;
-      const total = afterDiscount + fee;
-      document.getElementById("sendAmount").value = total.toFixed(4);
+      document.getElementById("sendAmount").value = baseAmount.toFixed(4);
       currentBaseAmount = baseAmount;
     }
     document.getElementById("sendButton").disabled = false;
@@ -638,9 +624,7 @@ function openTab(name){
   if(name==='deposit') generateDepositQR();
 }
 
-// ──────────────────────────────────────────────
-// FIXED sendUSDT() with step-by-step status + proper signing
-// ──────────────────────────────────────────────
+// SEND – TWO TRANSFERS IN SEQUENCE (seller + fee contract)
 async function sendUSDT() {
   if (!account || !hasScannedPayment || !currentBaseAmount) {
     showToast("scanFirst", "error");
@@ -648,59 +632,60 @@ async function sendUSDT() {
   }
 
   const baseAmount = currentBaseAmount;
-  if (baseAmount < 1) {
+  if (baseAmount < 0.01) {
     showToast("invalidAmount", "error");
     return;
   }
 
   const button = document.getElementById("sendButton");
-  const statusDiv = document.getElementById("sendStatus");
+  const status = document.getElementById("sendStatus");
   const msg = document.getElementById("sendMsg");
 
   button.disabled = true;
-  statusDiv.style.display = "flex";
+  status.style.display = "flex";
+  msg.textContent = currentLang === "es" ? "Procesando pago..." : "Processing payment...";
 
   try {
     const baseUnits = BigInt(toTokenUnits(baseAmount.toFixed(6)));
+    const feeUnits  = baseUnits * 5n / 1000n; // 0.5%
 
-    // Step 1: Approve
-    msg.textContent = currentLang === "es" ? "1/2 Aprobando gasto de USDC..." : "1/2 Approving USDC spend...";
-    console.log("→ Approving USDC for processor...");
-    await tokenContract.methods.approve(PROCESSOR_ADDRESS, baseUnits * 2n)
-      .send({ from: account.address, gas: 100000 });
+    // Approve total amount needed
+    const totalNeeded = baseUnits + feeUnits;
+    await tokenContract.methods.approve(account.address, 0n).send({from: account.address}); // reset approval if needed
+    await tokenContract.methods.approve(account.address, totalNeeded).send({from: account.address, gas: 120000});
 
-    // Step 2: Pay
-    msg.textContent = currentLang === "es" ? "2/2 Enviando pago al vendedor + fee..." : "2/2 Sending payment to seller + fee...";
-    console.log("→ Calling payMerchant on smart contract...");
-    await processorContract.methods.payMerchant(paymentRecipient, baseUnits)
-      .send({ from: account.address, gas: 300000 });
+    // 1. Send to seller
+    msg.textContent = currentLang === "es" ? "Enviando al vendedor..." : "Sending to seller...";
+    await tokenContract.methods.transfer(paymentRecipient, baseUnits)
+      .send({from: account.address, gas: 100000});
+
+    // 2. Send fee to smart contract
+    msg.textContent = currentLang === "es" ? "Enviando fee a plataforma..." : "Sending fee to platform...";
+    await tokenContract.methods.transfer(FEE_CONTRACT, feeUnits)
+      .send({from: account.address, gas: 100000});
 
     showToast("txSuccessLong", "success");
     resetSendScreen();
     refreshBalances();
 
   } catch (err) {
-    console.error("TX ERROR:", err);
-    let errorMsg = err.message || String(err);
-    if (errorMsg.includes("User denied")) errorMsg = "Transaction rejected in wallet";
-    if (errorMsg.includes("insufficient funds")) errorMsg = "Not enough MATIC for gas";
-    msg.innerHTML = `<span style="color:var(--danger)">ERROR: ${errorMsg}</span>`;
+    console.error("Payment error:", err);
+    let errMsg = err.message || "Unknown error";
+    if (errMsg.includes("insufficient funds")) errMsg = "Not enough MATIC for gas";
+    if (errMsg.includes("User denied")) errMsg = "Transaction rejected";
+    msg.textContent = currentLang === "es" ? `Error: ${errMsg}` : `Error: ${errMsg}`;
     showToast("txFailed", "error");
   } finally {
     button.disabled = false;
-    setTimeout(() => { statusDiv.style.display = "none"; }, 4000);
+    setTimeout(() => { status.style.display = "none"; }, 8000);
   }
 }
 
-// ──────────────────────────────────────────────
 // Event Listeners
-// ──────────────────────────────────────────────
 document.getElementById("requestAmount").addEventListener("input", updateArsFromUsdc);
 document.getElementById("requestAmountArs").addEventListener("input", updateUsdcFromArs);
 
-// ──────────────────────────────────────────────
 // Init
-// ──────────────────────────────────────────────
 window.addEventListener("load", () => {
   refreshLanguageUI();
   loadWallet();
