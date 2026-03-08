@@ -77,7 +77,7 @@
         <button class="lang-toggle active" id="langEn" onclick="setLanguage('en')">EN</button>
         <button class="lang-toggle" id="langEs" onclick="setLanguage('es')">ES</button>
       </div>
-      <h1 id="walletTitle">Wallet</h1>
+      <h1 id="walletTitle">v1.Wallet</h1>
       <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
     </div>
     <p id="subtitle" class="subtitle">USDC & MATIC on Polygon Amoy Testnet • Scan to Pay</p>
@@ -204,7 +204,7 @@ let currentLang = localStorage.getItem("lang") || "en";
 
 const translations = {
   en: {
-    title:"Wallet", subtitle:"USDC & MATIC on Polygon Amoy Testnet • Scan to Pay",
+    title:"v1.Wallet", subtitle:"USDC & MATIC on Polygon Amoy Testnet • Scan to Pay",
     pkLabel:"Private Key (hex) or Generate New", createBtn:"Create New Wallet", importBtn:"Import Existing Wallet",
     refreshBtn:"Refresh", tabSend:"↑ Send", tabRequest:"💰 Request", tabDeposit:"↓ Deposit",
     sendHint:"Scan a merchant's payment QR code<br><strong>Client view – pay with USDC</strong>",
@@ -229,7 +229,7 @@ const translations = {
     qrScannedLong: "QR scanned successfully – ready to send"
   },
   es: {
-    title:"Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
+    title:"v1.Billetera", subtitle:"USDC y MATIC en Polygon Amoy Testnet • Escanea para pagar",
     pkLabel:"Clave Privada (hex) o Generar Nueva", createBtn:"Crear Nueva Billetera", importBtn:"Importar Billetera Existente",
     refreshBtn:"Actualizar", tabSend:"↑ Enviar", tabRequest:"💰 Solicitar", tabDeposit:"↓ Depositar",
     sendHint:"Escanea el código QR de pago del comerciante<br><strong>Vista cliente – paga o envia USDC</strong>",
