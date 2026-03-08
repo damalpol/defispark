@@ -96,8 +96,8 @@
   <!-- Main Dashboard -->
   <div id="walletDashboard" style="display:none;">
     <div class="balance-card">
-      <h2><span id="usdtBalance">0.00</span> USDC</h2>
-      <small id="bnbBalance">0.0000 MATIC • Amoy Testnet</small>
+      <h2><span id="usdcBalance">0.00</span> USDC</h2>
+      <small id="maticBalance">0.0000 MATIC • Amoy Testnet</small>
       <button onclick="refreshBalances()" id="refreshBtn" style="margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:12px;font-size:12px;">Refresh</button>
     </div>
 
@@ -120,7 +120,7 @@
 
       <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
       <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)"></div>
-      <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
+      <button id="sendButton" class="main-btn" onclick="sendUSDC()" disabled>Send USDC Now</button>
       <div id="sendStatus" class="status waiting" style="display:none;">
         <div class="spinner"></div><span id="sendMsg">Processing transaction...</span>
       </div>
@@ -308,7 +308,7 @@ function toggleTheme() {
 }
 
 // ──────────────────────────────────────────────
-// Toast
+// Toast Notifications
 // ──────────────────────────────────────────────
 function showToast(key, type = "info", forcedDuration = null) {
   const msg = translations[currentLang][key] || key;
@@ -358,7 +358,6 @@ function copyWalletAddress() {
 // NETWORK & TOKEN CONFIG
 // ──────────────────────────────────────────────
 const TOKEN_ADDRESS = "0xf2BABBC04f3EcADf2e8D3c4796F1AFD3AC125883";
-const FEE_OWNER_ADDRESS = "0x1eFa181Cc91d1744d71aa7596d68fc5a06af8373";
 const CHAIN_ID = "80002";
 const RPC_HTTP = "https://rpc-amoy.polygon.technology/";
 
@@ -456,42 +455,62 @@ function updatePaymentDetails() {
   detailsEl.style.display = "flex";
 }
 
+// ──────────────────────────────────────────────
+// Send USDC
+// ──────────────────────────────────────────────
+async function sendUSDC() {
+  if (!account) return alert(currentLang === "es" ? "No hay billetera cargada" : "No wallet loaded");
 
-
-async function sendUSDT() {
-  if (!account) return alert("No wallet loaded");
   const to = document.getElementById("sendTo").value.trim();
-  const amtStr = document.getElementById("sendAmount").value;
+  const amtStr = document.getElementById("sendAmount").value.trim();
   const amt = parseFloat(amtStr);
-  if (!to || isNaN(amt) || amt <= 0) return alert("Invalid recipient or amount");
+
+  if (!to || !to.startsWith("0x") || to.length !== 42) {
+    return alert(currentLang === "es" ? "Dirección inválida" : "Invalid recipient address");
+  }
+  if (isNaN(amt) || amt <= 0) {
+    return alert(currentLang === "es" ? "Cantidad inválida" : "Invalid amount");
+  }
 
   const statusEl = document.getElementById("sendStatus");
   const msgEl = document.getElementById("sendMsg");
   statusEl.style.display = "flex";
-  msgEl.textContent = "Preparing transaction...";
+  msgEl.textContent = currentLang === "es" ? "Preparando transacción..." : "Preparing transaction...";
 
   try {
-    const value = web3.utils.toWei(amt.toString(), "ether");
-    const data = usdt.methods.transfer(to, value).encodeABI();
-    const gas = await usdt.methods.transfer(to, value).estimateGas({from: account.address});
+    const value = toTokenUnits(amt.toFixed(6));
+
+    const data = tokenContract.methods.transfer(to, value).encodeABI();
+
+    const gas = await tokenContract.methods.transfer(to, value).estimateGas({ from: account.address });
+
     const gasPrice = await web3.eth.getGasPrice();
 
-    const tx = { from: account.address, to: USDT, gas, gasPrice, data };
+    const tx = {
+      from: account.address,
+      to: TOKEN_ADDRESS,
+      gas,
+      gasPrice,
+      data
+    };
+
     const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
     const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
 
-    msgEl.textContent = `Success! Tx: ${receipt.transactionHash.slice(0,10)}...`;
+    msgEl.textContent = `${currentLang === "es" ? "¡Éxito!" : "Success!"} Tx: ${receipt.transactionHash.slice(0,10)}...`;
     statusEl.className = "status success";
-    checkBalance();
-  } catch(e) {
-    msgEl.textContent = "Failed: " + (e.message || e);
+    showToast("txSuccessLong", "success");
+    refreshBalances();
+  } catch (e) {
+    msgEl.textContent = `${currentLang === "es" ? "Falló:" : "Failed:"} ${e.reason || e.message || e}`;
     statusEl.className = "status waiting";
+    console.error(e);
+    showToast("txFailed", "error");
   }
 }
 
-
 // ──────────────────────────────────────────────
-// Deposit Monitoring – polling only (WebSocket removed)
+// Deposit Monitoring
 // ──────────────────────────────────────────────
 async function startDepositMonitoring() {
   if (!account) return;
@@ -520,8 +539,8 @@ async function startDepositMonitoring() {
       lastMaticBalance = currentMatic;
       lastUsdcBalance  = currentUsdc;
 
-      document.getElementById("usdtBalance").textContent = fromTokenUnits(currentUsdc);
-      document.getElementById("bnbBalance").textContent = Number(web3.utils.fromWei(currentMatic,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
+      document.getElementById("usdcBalance").textContent = fromTokenUnits(currentUsdc);
+      document.getElementById("maticBalance").textContent = Number(web3.utils.fromWei(currentMatic,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
     } catch (e) {}
   }, 12000);
 }
@@ -590,11 +609,13 @@ function showWallet(){
 async function refreshBalances(){
   if(!account)return;
   try{
-    const tokenBal=await tokenContract.methods.balanceOf(account.address).call();
-    document.getElementById("usdtBalance").textContent=fromTokenUnits(tokenBal);
-    const maticBal=await web3.eth.getBalance(account.address);
-    document.getElementById("bnbBalance").textContent=Number(web3.utils.fromWei(maticBal,"ether")).toFixed(4)+" MATIC • Amoy Testnet";
-  }catch(e){console.error(e);}
+    const tokenBal = await tokenContract.methods.balanceOf(account.address).call();
+    document.getElementById("usdcBalance").textContent = fromTokenUnits(tokenBal);
+    const maticBal = await web3.eth.getBalance(account.address);
+    document.getElementById("maticBalance").textContent = Number(web3.utils.fromWei(maticBal,"ether")).toFixed(4) + " MATIC • Amoy Testnet";
+  }catch(e){
+    console.error(e);
+  }
 }
 
 function generateRequestQR(){
@@ -637,55 +658,95 @@ function generateRequestQR(){
 function generateDepositQR(){
   if(!account)return;
   document.getElementById("depositQrcode").innerHTML="";
-  new QRCodeStyling({width:280,height:280,data:account.address,margin:8,qrOptions:{errorCorrectionLevel:"H"},dotsOptions:{color:"#10b981",type:"rounded"},backgroundOptions:{color:"#ffffff"}}).append(document.getElementById("depositQrcode"));
+  new QRCodeStyling({
+    width:280,
+    height:280,
+    data:account.address,
+    margin:8,
+    qrOptions:{errorCorrectionLevel:"H"},
+    dotsOptions:{color:"#10b981",type:"rounded"},
+    backgroundOptions:{color:"#ffffff"}
+  }).append(document.getElementById("depositQrcode"));
   document.getElementById("walletAddressText").textContent = account.address;
 }
 
-let stream; const video=document.getElementById("video"); const stopBtn=document.getElementById("stopBtn");
+let stream;
+const video = document.getElementById("video");
+const stopBtn = document.getElementById("stopBtn");
+
 async function startQRScanner(){
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    video.srcObject=stream;video.style.display="block";stopBtn.style.display="block";video.play();
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    video.srcObject = stream;
+    video.style.display = "block";
+    stopBtn.style.display = "block";
+    video.play();
     requestAnimationFrame(scan);
-  }catch(e){showToast("cameraError","error");}
+  }catch(e){
+    showToast("cameraError","error");
+    console.error(e);
+  }
 }
-function stopQRScanner(){if(stream)stream.getTracks().forEach(t=>t.stop());video.style.display="none";stopBtn.style.display="none";document.getElementById("scanResult").textContent="";}
+
+function stopQRScanner(){
+  if(stream) stream.getTracks().forEach(t => t.stop());
+  video.style.display = "none";
+  stopBtn.style.display = "none";
+  document.getElementById("scanResult").textContent = "";
+}
+
 function scan(){
-  if(video.videoWidth===0)return requestAnimationFrame(scan);
-  const canvas=document.createElement("canvas");canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  if(video.videoWidth === 0) return requestAnimationFrame(scan);
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
   canvas.getContext("2d").drawImage(video,0,0);
-  const code=jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
-  if(code){handleScanned(code.data);stopQRScanner();}else{requestAnimationFrame(scan);}
+  const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  if(code){
+    handleScanned(code.data);
+    stopQRScanner();
+  } else {
+    requestAnimationFrame(scan);
+  }
 }
+
 function handleScanned(data){
-  let address=null,amount=null;
+  let address = null, amount = null;
   try{
-    const url=new URL(data.startsWith("polygon:")?data.replace(/^polygon:/i,"https://dummy/"):"https://dummy/?"+data);
-    address=url.searchParams.get("address");
-    const weiStr=url.searchParams.get("uint256")||url.searchParams.get("value");
-    if(weiStr)amount=Number(fromTokenUnits(weiStr));
+    const url = new URL(data.startsWith("polygon:") ? data.replace(/^polygon:/i,"https://dummy/") : "https://dummy/?" + data);
+    address = url.searchParams.get("address");
+    const weiStr = url.searchParams.get("uint256") || url.searchParams.get("value");
+    if(weiStr) amount = Number(fromTokenUnits(weiStr));
   }catch(e){}
-  if(!address&&data.match(/^0x[a-fA-F0-9]{40}$/))address=data;
-  else if(!address&&data.includes("0x")){const match=data.match(/0x[a-fA-F0-9]{40}/i);if(match)address=match[0];}
+
+  if(!address && data.match(/^0x[a-fA-F0-9]{40}$/)) address = data;
+  else if(!address && data.includes("0x")){
+    const match = data.match(/0x[a-fA-F0-9]{40}/i);
+    if(match) address = match[0];
+  }
+
   if(address){
-    paymentRecipient=address;hasScannedPayment=true;
-    document.getElementById("sendTo").value=shortenAddress(address);
-    if(amount&&amount>0)document.getElementById("sendAmount").value=amount;
-    document.getElementById("sendButton").disabled=false;
+    paymentRecipient = address;
+    hasScannedPayment = true;
+    document.getElementById("sendTo").value = shortenAddress(address);
+    if(amount && amount > 0) document.getElementById("sendAmount").value = amount;
+    document.getElementById("sendButton").disabled = false;
     showToast("qrScannedLong","success");
-  }else{showToast("qrInvalid","error");}
+  } else {
+    showToast("qrInvalid","error");
+  }
 }
-function resetSendScreen(){hasScannedPayment=false;paymentRecipient="";document.getElementById("sendTo").value="";document.getElementById("sendAmount").value="";document.getElementById("sendButton").disabled=true;}
+
 function openTab(name){
-  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
   document.getElementById(name).classList.add("active");
   document.querySelector(`[onclick="openTab('${name}')"]`).classList.add("active");
-  if(name==='deposit') generateDepositQR();
+  if(name === 'deposit') generateDepositQR();
 }
 
 // ──────────────────────────────────────────────
-// Event Listeners for conversion
+// Event Listeners
 // ──────────────────────────────────────────────
 document.getElementById("requestAmount").addEventListener("input", updateArsFromUsdc);
 document.getElementById("requestAmountArs").addEventListener("input", updateUsdcFromArs);
@@ -693,10 +754,10 @@ document.getElementById("requestAmountArs").addEventListener("input", updateUsdc
 // ──────────────────────────────────────────────
 // Init
 // ──────────────────────────────────────────────
-window.addEventListener("load",()=>{
+window.addEventListener("load", () => {
   refreshLanguageUI();
   loadWallet();
-  if(!account)document.getElementById("sendButton").disabled=true;
+  if(!account) document.getElementById("sendButton").disabled = true;
   fetchUsdtArsRate();
 });
 
