@@ -121,12 +121,10 @@
       <div class="input-group"><label id="recipientLabel">Recipient Address</label><input type="text" id="sendTo" readonly placeholder="0x... (scan QR to fill)"></div>
       <div class="input-group"><label id="amountLabel">Amount (USDC)</label><input type="number" id="sendAmount" placeholder="0.00 (scan QR to fill)"></div>
       <button id="sendButton" class="main-btn" onclick="sendUSDT()" disabled>Send USDC Now</button>
-      <div id="sendStatus" class="status waiting" style="display:none;">
-        <div class="spinner"></div><span id="sendMsg">Processing transaction...</span>
-      </div>
+      <div id="sendStatus" class="status waiting" style="display:none;"><div class="spinner"></div><span id="sendMsg">Processing transaction...</span></div>
     </div>
 
-    <!-- REQUEST TAB -->
+    <!-- REQUEST TAB (updated with breakdown) -->
     <div id="request" class="tab-content active">
       <div class="scan-hint" id="requestHint">Ingresa monto en ARS o USDC → Genera QR<br><strong>Vista vendedor – los compradores te escanean para pagar</strong></div>
       
@@ -145,6 +143,7 @@
         <input type="number" id="requestAmount" placeholder="ej. 100" step="0.01" min="0.01">
       </div>
 
+      <!-- Payment breakdown -->
       <div id="paymentDetails" class="status" style="display:none; flex-direction:column; align-items:flex-start; text-align:left; background:rgba(139,92,246,0.08); border:1px solid var(--primary); margin:12px 0; padding:14px; border-radius:16px;">
         <div style="width:100%; margin-bottom:8px; font-weight:600;">Detalle del pago:</div>
         <div style="width:100%; display:flex; justify-content:space-between; font-size:14px; margin:4px 0;">
@@ -342,6 +341,7 @@ function copyWalletAddress() {
   if (!account) return;
   navigator.clipboard.writeText(account.address).then(() => {
     const btn = document.getElementById("copyAddressBtn");
+    const original = btn.textContent;
     btn.textContent = currentLang === "es" ? "¡Copiado!" : "Copied!";
     btn.classList.add("copied");
     setTimeout(() => {
@@ -353,19 +353,20 @@ function copyWalletAddress() {
 }
 
 // ──────────────────────────────────────────────
-// NETWORK CONFIG
+// NETWORK & TOKEN CONFIG
 // ──────────────────────────────────────────────
 const TOKEN_ADDRESS = "0xf2BABBC04f3EcADf2e8D3c4796F1AFD3AC125883";
-const FEE_OWNER_ADDRESS = "0x1eFa181Cc91d1744d71aa7596d68fc5a06af8373";
 const CHAIN_ID = "80002";
 const RPC_HTTP = "https://rpc-amoy.polygon.technology/";
+const RPC_WS   = "wss://polygon-amoy-bor-rpc.publicnode.com";
 
 const web3 = new Web3(RPC_HTTP);
+const web3Ws = new Web3(RPC_WS);
 
 const tokenContract = new web3.eth.Contract([
   {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
   {"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
-  {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}
 ], TOKEN_ADDRESS);
 
 let account = null;
@@ -373,7 +374,10 @@ let paymentRecipient = "";
 let hasScannedPayment = false;
 let lastMaticBalance = "0";
 let lastUsdcBalance = "0";
+let wsSubscription = null;
 let pollingInterval = null;
+
+// Rate (ARS per 1 USDC)
 let usdcArsRate = null;
 
 // ──────────────────────────────────────────────
@@ -390,7 +394,7 @@ function toTokenUnits(amountStr) {
 }
 
 // ──────────────────────────────────────────────
-// Rate Fetch & Conversion
+// Rate Fetch & Conversion (improved)
 // ──────────────────────────────────────────────
 async function fetchUsdtArsRate() {
   const notice = document.getElementById("rateNotice");
@@ -399,11 +403,15 @@ async function fetchUsdtArsRate() {
 
   try {
     let rate = null;
+
+    // Primary: CoinGecko (most reliable for USDC)
     try {
       const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=ars");
       const data = await res.json();
       rate = data["usd-coin"]?.ars;
     } catch {}
+
+    // Fallbacks
     if (!rate) {
       try {
         const res = await fetch("https://api.exchangerate.host/convert?from=USD&to=ARS");
@@ -411,13 +419,18 @@ async function fetchUsdtArsRate() {
         rate = data.result;
       } catch {}
     }
+
     if (!rate || rate < 1000 || rate > 2000) throw new Error("Invalid rate");
+
     usdcArsRate = rate;
     notice.innerHTML = `1 USDC ≈ <strong>${rate.toFixed(0)} ARS</strong> <small>(actualizado)</small>`;
     notice.style.color = "var(--success)";
+
+    // Sync fields if one has value
     if (document.getElementById("requestAmount").value) updateArsFromUsdc();
     else if (document.getElementById("requestAmountArs").value) updateUsdcFromArs();
   } catch (e) {
+    console.warn(e);
     notice.textContent = currentLang === "es" ? "Error al cargar tasa – usa manual" : "Failed to load rate – use manual";
     notice.style.color = "var(--danger)";
   }
@@ -426,54 +439,82 @@ async function fetchUsdtArsRate() {
 function updateArsFromUsdc() {
   if (!usdcArsRate) return;
   const usdc = parseFloat(document.getElementById("requestAmount").value) || 0;
-  if (usdc > 0) document.getElementById("requestAmountArs").value = Math.round(usdc * usdcArsRate);
+  if (usdc > 0) {
+    document.getElementById("requestAmountArs").value = Math.round(usdc * usdcArsRate);
+  }
   updatePaymentDetails();
 }
 
 function updateUsdcFromArs() {
   if (!usdcArsRate) return;
   const ars = parseFloat(document.getElementById("requestAmountArs").value) || 0;
-  if (ars > 0) document.getElementById("requestAmount").value = (ars / usdcArsRate).toFixed(4);
+  if (ars > 0) {
+    document.getElementById("requestAmount").value = (ars / usdcArsRate).toFixed(4);
+  }
   updatePaymentDetails();
 }
 
 function updatePaymentDetails() {
   const base = parseFloat(document.getElementById("requestAmount").value) || 0;
   const detailsEl = document.getElementById("paymentDetails");
-  if (base <= 0) { detailsEl.style.display = "none"; return; }
+
+  if (base <= 0) {
+    detailsEl.style.display = "none";
+    return;
+  }
+
   const discount = base * 0.03;
   const afterDiscount = base - discount;
   const fee = afterDiscount * 0.005;
   const total = afterDiscount + fee;
+
   document.getElementById("baseUsdc").textContent = base.toFixed(4) + " USDC";
   document.getElementById("discountUsdc").textContent = "-" + discount.toFixed(4) + " USDC";
   document.getElementById("feeUsdc").textContent = "+" + fee.toFixed(4) + " USDC";
   document.getElementById("totalUsdc").textContent = total.toFixed(4) + " USDC";
+
   detailsEl.style.display = "flex";
 }
 
 // ──────────────────────────────────────────────
-// Deposit Monitoring – polling only
+// Deposit Monitoring
 // ──────────────────────────────────────────────
 async function startDepositMonitoring() {
   if (!account) return;
+
   document.getElementById("depositStatus").style.display = "flex";
 
   lastMaticBalance = await web3.eth.getBalance(account.address);
   lastUsdcBalance  = await tokenContract.methods.balanceOf(account.address).call();
 
+  try {
+    wsSubscription = tokenContract.events.Transfer({
+      filter: { to: account.address },
+      fromBlock: 'latest'
+    })
+    .on('data', (event) => {
+      const amount = fromTokenUnits(event.returnValues.value);
+      showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", amount)}`, "success");
+      refreshBalances();
+    })
+    .on('error', console.warn);
+  } catch (e) {
+    console.warn("WebSocket failed:", e);
+  }
+
   pollingInterval = setInterval(async () => {
     if (document.getElementById("walletDashboard").style.display !== "block") return;
+
     try {
       const currentMatic = await web3.eth.getBalance(account.address);
       const currentUsdc  = await tokenContract.methods.balanceOf(account.address).call();
 
       if (currentMatic !== lastMaticBalance && lastMaticBalance !== "0") {
-        const diff = Number(web3.utils.fromWei(BigInt(currentMatic) - BigInt(lastMaticBalance), "ether")).toFixed(4);
+        const diff = Number(web3.utils.fromWei(currentMatic - lastMaticBalance, "ether")).toFixed(4);
         showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositMatic.replace("{amount}", diff)}`, "success");
       }
       if (currentUsdc !== lastUsdcBalance && lastUsdcBalance !== "0") {
-        const diff = fromTokenUnits(BigInt(currentUsdc) - BigInt(lastUsdcBalance));
+        const diff = fromTokenUnits(currentUsdc - lastUsdcBalance);
         showToast(`${translations[currentLang].depositReceived} ${translations[currentLang].depositUsdc.replace("{amount}", diff)}`, "success");
       }
 
@@ -487,17 +528,25 @@ async function startDepositMonitoring() {
 }
 
 function stopDepositMonitoring() {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
+  if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
   document.getElementById("depositStatus").style.display = "none";
 }
 
 // ──────────────────────────────────────────────
 // Wallet Core
 // ──────────────────────────────────────────────
-function showWallet() {
+function generateNewWallet(){account=web3.eth.accounts.create();saveWallet();showWallet();showToast("newWallet","success");}
+function importWallet(){
+  const pk=document.getElementById("privateKey").value.trim();
+  if(!pk.startsWith("0x")||pk.length!==66){showToast("invalidPkFormat","error");return;}
+  try{account=web3.eth.accounts.privateKeyToAccount(pk);saveWallet();showWallet();showToast("walletImported","success");}
+  catch(e){showToast("invalidPk","error");}
+}
+function saveWallet(){if(account)localStorage.setItem("defispark_wallet_pk",account.privateKey);}
+function loadWallet(){const pk=localStorage.getItem("defispark_wallet_pk");if(pk){account=web3.eth.accounts.privateKeyToAccount(pk);showWallet();}}
+
+function showWallet(){
   document.getElementById("walletSetup").style.display="none";
   document.getElementById("walletDashboard").style.display="block";
   refreshLanguageUI();
@@ -505,54 +554,6 @@ function showWallet() {
   generateDepositQR();
   startDepositMonitoring();
   showToast("walletLoaded","info");
-}
-
-function generateNewWallet(){
-  account = web3.eth.accounts.create();
-  web3.eth.accounts.wallet.add(account.privateKey);
-  console.log("[WALLET] New wallet created and signer added:", account.address);
-  saveWallet();
-  showWallet();
-  showToast("newWallet","success");
-}
-
-function importWallet(){
-  const pk = document.getElementById("privateKey").value.trim();
-  if(!pk.startsWith("0x")||pk.length!==66){
-    showToast("invalidPkFormat","error");
-    return;
-  }
-  try{
-    account = web3.eth.accounts.privateKeyToAccount(pk);
-    web3.eth.accounts.wallet.add(account.privateKey);
-    console.log("[WALLET] Imported wallet and signer added:", account.address);
-    saveWallet();
-    showWallet();
-    showToast("walletImported","success");
-  }
-  catch(e){
-    console.error("[WALLET] Import failed:", e);
-    showToast("invalidPk","error");
-  }
-}
-
-function saveWallet(){
-  if(account) localStorage.setItem("defispark_wallet_pk",account.privateKey);
-}
-
-function loadWallet(){
-  const pk = localStorage.getItem("defispark_wallet_pk");
-  if(pk){
-    try{
-      account = web3.eth.accounts.privateKeyToAccount(pk);
-      web3.eth.accounts.wallet.add(account.privateKey);
-      console.log("[WALLET] Loaded wallet from storage and signer added:", account.address);
-      showWallet();
-    } catch(e){
-      console.error("[WALLET] Failed to load wallet:", e);
-      showToast("Error loading saved wallet – please import again", "error");
-    }
-  }
 }
 
 async function refreshBalances(){
@@ -600,7 +601,7 @@ function generateRequestQR(){
 }
 
 // ──────────────────────────────────────────────
-// QR Scanner
+// QR Scanner + Deposit QR
 // ──────────────────────────────────────────────
 function generateDepositQR(){
   if(!account)return;
@@ -653,59 +654,7 @@ function openTab(name){
 }
 
 // ──────────────────────────────────────────────
-// sendUSDT
-// ──────────────────────────────────────────────
-async function sendUSDT() {
-  if (!account || !hasScannedPayment) {
-    showToast("scanFirst", "error");
-    return;
-  }
-
-  const amountStr = document.getElementById("sendAmount").value;
-  const amount = parseFloat(amountStr);
-  if (!amount || amount <= 0) {
-    showToast("invalidAmount", "error");
-    return;
-  }
-
-  const button = document.getElementById("sendButton");
-  const status = document.getElementById("sendStatus");
-  const msg = document.getElementById("sendMsg");
-
-  button.disabled = true;
-  status.style.display = "flex";
-  msg.textContent = currentLang === "es" ? "Procesando..." : "Processing...";
-
-  try {
-    const amountUnits = BigInt(toTokenUnits(amount.toFixed(6)));
-    const feeUnits = amountUnits * 5n / 1000n;
-    const totalUnits = amountUnits + feeUnits;
-
-    await tokenContract.methods.approve(account.address, 0n).send({ from: account.address, gas: 80000 });
-    await tokenContract.methods.approve(account.address, totalUnits).send({ from: account.address, gas: 120000 });
-
-    await tokenContract.methods.transfer(paymentRecipient, amountUnits).send({ from: account.address, gas: 100000 });
-
-    await tokenContract.methods.transfer(FEE_OWNER_ADDRESS, feeUnits).send({ from: account.address, gas: 100000 });
-
-    showToast("txSuccessLong", "success");
-    resetSendScreen();
-    refreshBalances();
-
-  } catch (err) {
-    console.error(err);
-    let errMsg = err.message || "Unknown error";
-    if (errMsg.includes("unknown account")) errMsg = "Unknown account – please re-import your private key";
-    msg.innerHTML = `<span style="color:var(--danger)">Error: ${errMsg}</span>`;
-    showToast("txFailed", "error");
-  } finally {
-    button.disabled = false;
-    setTimeout(() => { status.style.display = "none"; }, 8000);
-  }
-}
-
-// ──────────────────────────────────────────────
-// Event Listeners
+// Event Listeners for conversion
 // ──────────────────────────────────────────────
 document.getElementById("requestAmount").addEventListener("input", updateArsFromUsdc);
 document.getElementById("requestAmountArs").addEventListener("input", updateUsdcFromArs);
