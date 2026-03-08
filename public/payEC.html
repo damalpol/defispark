@@ -456,6 +456,40 @@ function updatePaymentDetails() {
   detailsEl.style.display = "flex";
 }
 
+
+
+async function sendUSDT() {
+  if (!account) return alert("No wallet loaded");
+  const to = document.getElementById("sendTo").value.trim();
+  const amtStr = document.getElementById("sendAmount").value;
+  const amt = parseFloat(amtStr);
+  if (!to || isNaN(amt) || amt <= 0) return alert("Invalid recipient or amount");
+
+  const statusEl = document.getElementById("sendStatus");
+  const msgEl = document.getElementById("sendMsg");
+  statusEl.style.display = "flex";
+  msgEl.textContent = "Preparing transaction...";
+
+  try {
+    const value = web3.utils.toWei(amt.toString(), "ether");
+    const data = usdt.methods.transfer(to, value).encodeABI();
+    const gas = await usdt.methods.transfer(to, value).estimateGas({from: account.address});
+    const gasPrice = await web3.eth.getGasPrice();
+
+    const tx = { from: account.address, to: USDT, gas, gasPrice, data };
+    const signed = await web3.eth.accounts.signTransaction(tx, account.privateKey);
+    const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
+
+    msgEl.textContent = `Success! Tx: ${receipt.transactionHash.slice(0,10)}...`;
+    statusEl.className = "status success";
+    checkBalance();
+  } catch(e) {
+    msgEl.textContent = "Failed: " + (e.message || e);
+    statusEl.className = "status waiting";
+  }
+}
+
+
 // ──────────────────────────────────────────────
 // Deposit Monitoring – polling only (WebSocket removed)
 // ──────────────────────────────────────────────
